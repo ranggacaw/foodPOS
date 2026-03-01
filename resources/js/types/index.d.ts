@@ -3,7 +3,7 @@ export interface User {
     name: string;
     email: string;
     email_verified_at?: string;
-    role: 'admin' | 'cashier';
+    role: "admin" | "cashier";
 }
 
 export interface Category {
@@ -69,15 +69,35 @@ export interface Order {
     id: number;
     order_number: string;
     user_id: number;
+    shift_id: number | null;
     subtotal: string;
     tax: string;
     total: string;
-    payment_method: 'cash' | 'card' | 'qris';
-    status: 'pending' | 'completed' | 'cancelled';
+    payment_method: "cash" | "card" | "qris";
+    status: "pending" | "completed" | "cancelled";
+    cancelled_by: number | null;
+    cancelled_at: string | null;
     created_at: string;
     updated_at: string;
     user?: User;
+    cancelledBy?: User;
+    shift?: Shift;
     items?: OrderItem[];
+}
+
+export interface Shift {
+    id: number;
+    user_id: number;
+    opening_cash: string;
+    closing_cash: string | null;
+    notes: string | null;
+    status: "open" | "closed";
+    opened_at: string;
+    closed_at: string | null;
+    created_at: string;
+    updated_at: string;
+    user?: User;
+    orders?: Order[];
 }
 
 export interface OrderItem {
@@ -111,9 +131,19 @@ export interface PaginatedData<T> {
     };
 }
 
-export type PageProps<
-    T extends object = Record<string, unknown>,
-> = T & {
+export interface ActivityLog {
+    id: number;
+    user_id: number | null;
+    action: string;
+    model_type: string;
+    model_id: number;
+    payload: any | null;
+    ip_address: string | null;
+    created_at: string;
+    user?: User;
+}
+
+export type PageProps<T extends object = Record<string, unknown>> = T & {
     auth: {
         user: User;
     };
@@ -121,4 +151,5 @@ export type PageProps<
         success?: string;
         error?: string;
     };
+    active_shift?: Shift | null;
 };

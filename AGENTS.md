@@ -89,13 +89,13 @@
 
 ### Service Boundaries
 
-| Boundary                                                   | Responsibility                                                                  |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **POS** (`App\Http\Controllers\POS`)                       | Order creation, order detail view, cashier order history                        |
-| **Admin** (`App\Http\Controllers\Admin`)                   | CRUD for categories, menu items, ingredients, recipes, inventory; sales reports |
-| **Dashboard** (`App\Http\Controllers\DashboardController`) | Aggregated KPIs for authenticated users                                         |
-| **Auth** (`App\Http\Controllers\Auth`)                     | Login, registration, password reset, email verification (Breeze)                |
-| **Profile** (`App\Http\Controllers\ProfileController`)     | User profile editing and account deletion                                       |
+| Boundary                                                   | Responsibility                                                                                                         |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **POS** (`App\Http\Controllers\POS`)                       | Order creation, order detail view, cashier order history                                                               |
+| **Admin** (`App\Http\Controllers\Admin`)                   | CRUD for categories, menu items, ingredients, recipes, inventory; sales reports; **order cancellation**; **audit log** |
+| **Dashboard** (`App\Http\Controllers\DashboardController`) | Aggregated KPIs for authenticated users                                                                                |
+| **Auth** (`App\Http\Controllers\Auth`)                     | Login, registration, password reset, email verification (Breeze)                                                       |
+| **Profile** (`App\Http\Controllers\ProfileController`)     | User profile editing and account deletion                                                                              |
 
 ### Data Flow — Order Placement
 
@@ -127,6 +127,8 @@ foodPOS/
 │   │   ├── Controllers/
 │   │   │   ├── Admin/
 │   │   │   │   ├── CategoryController.php      # CRUD categories
+│   │   │   │   ├── AuditLogController.php      # View activity logs
+│   │   │   │   ├── CancelOrderController.php   # Void completed orders (admin-only)
 │   │   │   │   ├── IngredientController.php     # CRUD ingredients + auto-create inventory
 │   │   │   │   ├── InventoryController.php      # View & update stock levels
 │   │   │   │   ├── MenuItemController.php       # CRUD menu items
@@ -134,7 +136,8 @@ foodPOS/
 │   │   │   │   └── ReportController.php         # Date-range sales & profit reports
 │   │   │   ├── Auth/                            # Breeze auth controllers
 │   │   │   ├── POS/
-│   │   │   │   └── OrderController.php          # POS terminal + order CRUD
+│   │   │   │   ├── OrderController.php          # POS terminal + order CRUD
+│   │   │   │   └── ShiftController.php          # Cashier shift opening & closing
 │   │   │   ├── Controller.php                   # Base controller
 │   │   │   ├── DashboardController.php          # KPI dashboard
 │   │   │   └── ProfileController.php            # Profile edit/delete
@@ -370,16 +373,17 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 
 ### Entity Definitions
 
-| Entity         | Key Attributes                                                          | Notes                                                                  |
-| -------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| **User**       | id, name, email, password, role (`admin`\|`cashier`)                    | Authenticatable; factory-supported                                     |
-| **Category**   | id, name, description, sort_order, is_active                            | Soft-sortable; toggleable                                              |
-| **MenuItem**   | id, category_id, name, description, price, image, is_active             | Computed: `cost`, `food_cost_percentage`                               |
-| **Ingredient** | id, name, unit, cost_per_unit                                           | Unit examples: `kg`, `liter`, `pcs`                                    |
-| **Recipe**     | id, menu_item_id, ingredient_id, quantity                               | BOM junction table; unique constraint on (menu_item_id, ingredient_id) |
-| **Inventory**  | id, ingredient_id, quantity_on_hand, restock_threshold                  | 1:1 with Ingredient; unique constraint on ingredient_id                |
-| **Order**      | id, order_number, user_id, subtotal, tax, total, payment_method, status | Auto-generated order_number: `ORD-YYYYMMDD-NNNN`                       |
-| **OrderItem**  | id, order_id, menu_item_id, quantity, unit_price, subtotal, cost        | Price & COGS snapshots at time of order                                |
+| Entity          | Key Attributes                                                                                                                                       | Notes                                                                                          |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **User**        | id, name, email, password, role (`admin`\|`cashier`)                                                                                                 | Authenticatable; factory-supported                                                             |
+| **Category**    | id, name, description, sort_order, is_active                                                                                                         | Soft-sortable; toggleable                                                                      |
+| **MenuItem**    | id, category_id, name, description, price, image, is_active                                                                                          | Computed: `cost`, `food_cost_percentage`                                                       |
+| **Ingredient**  | id, name, unit, cost_per_unit                                                                                                                        | Unit examples: `kg`, `liter`, `pcs`                                                            |
+| **Recipe**      | id, menu_item_id, ingredient_id, quantity                                                                                                            | BOM junction table; unique constraint on (menu_item_id, ingredient_id)                         |
+| **Inventory**   | id, ingredient_id, quantity_on_hand, restock_threshold                                                                                               | 1:1 with Ingredient; unique constraint on ingredient_id                                        |
+| **Order**       | id, order_number, user_id, subtotal, tax, total, payment_method, status, **cancelled_by** (nullable FK→users), **cancelled_at** (nullable timestamp) | Auto-generated order_number: `ORD-YYYYMMDD-NNNN`. `cancelled_by` / `cancelled_at` set on void. |
+| **OrderItem**   | id, order_id, menu_item_id, quantity, unit_price, subtotal, cost                                                                                     | Price & COGS snapshots at time of order                                                        |
+| **ActivityLog** | id, user_id, action, model_type, model_id, payload, ip_address, created_at                                                                           | Immutable record of system changes, managed by `AuditLogger` Service and Eloquent Observers.   |
 
 ### Decimal Precision
 
@@ -718,7 +722,7 @@ Based on conversation history and codebase analysis:
 
 ### Known Bugs / Workarounds
 
-- **Migration enum modification:** The `change_payment_method_enum_in_orders_table` migration uses raw SQL (`ALTER TABLE ... MODIFY COLUMN`), which only works with MySQL and will fail on PostgreSQL or SQLite.
+- **Migration enum modification:** The `change_payment_method_enum_in_orders_table` migration uses raw SQL (`ALTER TABLE ... MODIFY COLUMN`). It now guards on `DB::getDriverName() === 'sqlite'` and is skipped on SQLite. The base `create_orders_table` migration was updated to use `qris` directly, keeping SQLite test installs consistent. ✅ Fixed in `add-refund-void-management`.
 - **File casing issues:** Windows case-insensitivity has caused import path mismatches (e.g., `Layouts` vs `layouts`). See conversation history.
 
 ---

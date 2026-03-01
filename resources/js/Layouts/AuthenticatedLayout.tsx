@@ -88,6 +88,13 @@ export default function Authenticated({
                                         Order History
                                     </NavLink>
                                 )}
+
+                                <NavLink
+                                    href={route('pos.shifts.index')}
+                                    active={route().current('pos.shifts.*')}
+                                >
+                                    Shifts
+                                </NavLink>
                             </div>
                         </div>
 
@@ -243,6 +250,13 @@ export default function Authenticated({
                                 Order History
                             </ResponsiveNavLink>
                         )}
+
+                        <ResponsiveNavLink
+                            href={route('pos.shifts.index')}
+                            active={route().current('pos.shifts.*')}
+                        >
+                            Shifts
+                        </ResponsiveNavLink>
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">

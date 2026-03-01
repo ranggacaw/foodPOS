@@ -11,11 +11,14 @@ class Order extends Model
     protected $fillable = [
         'order_number',
         'user_id',
+        'shift_id',
         'subtotal',
         'tax',
         'total',
         'payment_method',
         'status',
+        'cancelled_by',
+        'cancelled_at',
     ];
 
     protected function casts(): array
@@ -24,6 +27,7 @@ class Order extends Model
             'subtotal' => 'decimal:2',
             'tax' => 'decimal:2',
             'total' => 'decimal:2',
+            'cancelled_at' => 'datetime',
         ];
     }
 
@@ -46,11 +50,29 @@ class Order extends Model
     }
 
     /**
+     * The admin who cancelled this order.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by');
+    }
+
+    /**
      * @return HasMany<OrderItem, $this>
      */
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    /**
+     * @return BelongsTo<Shift, $this>
+     */
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
     }
 
     /**

@@ -19,12 +19,15 @@ class DashboardController extends Controller
 
         $lowStockCount = Inventory::whereColumn('quantity_on_hand', '<=', 'restock_threshold')->count();
 
+        $activeShift = request()->user()->shifts()->where('status', 'open')->first();
+
         return Inertia::render('Dashboard', [
             'stats' => [
                 'today_orders' => $todayOrdersCount,
                 'today_revenue' => round((float) $todayRevenue, 2),
                 'low_stock_count' => $lowStockCount,
             ],
+            'active_shift' => $activeShift,
         ]);
     }
 }

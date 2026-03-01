@@ -19,9 +19,11 @@ class OrderController extends Controller
         $categories = Category::where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('name')
-            ->with(['menuItems' => function ($query) {
-                $query->where('is_active', true)->orderBy('name');
-            }])
+            ->with([
+                'menuItems' => function ($query) {
+                    $query->where('is_active', true)->orderBy('name');
+                }
+            ])
             ->get();
 
         return Inertia::render('POS/Index', [
@@ -81,9 +83,12 @@ class OrderController extends Controller
             $tax = round($subtotal * $taxRate, 2);
             $total = round($subtotal + $tax, 2);
 
+            $shift_id = $request->user()->shifts()->where('status', 'open')->value('id');
+
             $order = Order::create([
                 'order_number' => Order::generateOrderNumber(),
                 'user_id' => $request->user()->id,
+                'shift_id' => $shift_id,
                 'subtotal' => $subtotal,
                 'tax' => $tax,
                 'total' => $total,
@@ -103,7 +108,7 @@ class OrderController extends Controller
     public function show(Order $order): Response
     {
         return Inertia::render('POS/OrderDetail', [
-            'order' => $order->load(['items.menuItem', 'user']),
+            'order' => $order->load(['items.menuItem', 'user', 'cancelledBy']),
         ]);
     }
 

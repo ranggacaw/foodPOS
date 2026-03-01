@@ -6,8 +6,11 @@ use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\MenuItemController;
 use App\Http\Controllers\Admin\RecipeController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\CancelOrderController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\POS\OrderController;
+use App\Http\Controllers\POS\ShiftController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -60,6 +63,14 @@ Route::middleware(['auth', 'verified', 'role:admin'])
         // Reports
         Route::get('reports', [ReportController::class, 'index'])
             ->name('reports.index');
+
+        // Audit Log
+        Route::get('audit-log', [AuditLogController::class, 'index'])
+            ->name('audit-log.index');
+
+        // Order cancellation
+        Route::patch('orders/{order}/cancel', CancelOrderController::class)
+            ->name('orders.cancel');
     });
 
 // POS routes (accessible by both admin and cashier)
@@ -71,6 +82,14 @@ Route::middleware(['auth', 'verified'])
         Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
         Route::get('/orders/history', [OrderController::class, 'history'])->name('orders.history');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+
+        // Shifts
+        Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');
+        Route::get('/shifts/open', [ShiftController::class, 'create'])->name('shifts.open');
+        Route::post('/shifts', [ShiftController::class, 'store'])->name('shifts.store');
+        Route::get('/shifts/{shift}/close', [ShiftController::class, 'close'])->name('shifts.close');
+        Route::patch('/shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
+        Route::get('/shifts/{shift}', [ShiftController::class, 'show'])->name('shifts.show');
     });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
