@@ -23,8 +23,8 @@ class ReportController extends Controller
             ? Carbon::parse($request->query('to'))->endOfDay()
             : Carbon::today()->endOfDay();
 
-        $orders = Order::whereBetween('created_at', [$from, $to])
-            ->where('status', '!=', 'cancelled');
+        $orders = Order::whereBetween('orders.created_at', [$from, $to])
+            ->where('orders.status', '!=', 'cancelled');
 
         $totalRevenue = (clone $orders)->sum('total');
         $totalOrders = (clone $orders)->count();

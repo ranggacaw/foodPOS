@@ -110,21 +110,21 @@ export default function Index({
                         </div>
 
                         {/* Pagination */}
-                        {ingredients.meta.last_page > 1 && (
+                        {ingredients.last_page > 1 && (
                             <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
                                 <div className="text-sm text-gray-700">
                                     Showing{' '}
-                                    <span className="font-medium">{ingredients.meta.from}</span>{' '}
+                                    <span className="font-medium">{ingredients.from}</span>{' '}
                                     to{' '}
-                                    <span className="font-medium">{ingredients.meta.to}</span>{' '}
+                                    <span className="font-medium">{ingredients.to}</span>{' '}
                                     of{' '}
-                                    <span className="font-medium">{ingredients.meta.total}</span>{' '}
+                                    <span className="font-medium">{ingredients.total}</span>{' '}
                                     results
                                 </div>
                                 <div className="flex space-x-2">
-                                    {ingredients.links.prev ? (
+                                    {ingredients.prev_page_url ? (
                                         <Link
-                                            href={ingredients.links.prev}
+                                            href={ingredients.prev_page_url}
                                             className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                         >
                                             Previous
@@ -134,9 +134,9 @@ export default function Index({
                                             Previous
                                         </span>
                                     )}
-                                    {ingredients.links.next ? (
+                                    {ingredients.next_page_url ? (
                                         <Link
-                                            href={ingredients.links.next}
+                                            href={ingredients.next_page_url}
                                             className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                         >
                                             Next

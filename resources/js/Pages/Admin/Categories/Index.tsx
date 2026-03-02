@@ -77,11 +77,10 @@ export default function Index({
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4 text-sm">
                                                     <span
-                                                        className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                                                            category.is_active
+                                                        className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${category.is_active
                                                                 ? 'bg-green-100 text-green-800'
                                                                 : 'bg-red-100 text-red-800'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {category.is_active ? 'Active' : 'Inactive'}
                                                     </span>
@@ -108,21 +107,21 @@ export default function Index({
                         </div>
 
                         {/* Pagination */}
-                        {categories.meta.last_page > 1 && (
+                        {categories.last_page > 1 && (
                             <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
                                 <div className="text-sm text-gray-700">
                                     Showing{' '}
-                                    <span className="font-medium">{categories.meta.from}</span>{' '}
+                                    <span className="font-medium">{categories.from}</span>{' '}
                                     to{' '}
-                                    <span className="font-medium">{categories.meta.to}</span>{' '}
+                                    <span className="font-medium">{categories.to}</span>{' '}
                                     of{' '}
-                                    <span className="font-medium">{categories.meta.total}</span>{' '}
+                                    <span className="font-medium">{categories.total}</span>{' '}
                                     results
                                 </div>
                                 <div className="flex space-x-2">
-                                    {categories.links.prev ? (
+                                    {categories.prev_page_url ? (
                                         <Link
-                                            href={categories.links.prev}
+                                            href={categories.prev_page_url}
                                             className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                         >
                                             Previous
@@ -132,9 +131,9 @@ export default function Index({
                                             Previous
                                         </span>
                                     )}
-                                    {categories.links.next ? (
+                                    {categories.next_page_url ? (
                                         <Link
-                                            href={categories.links.next}
+                                            href={categories.next_page_url}
                                             className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                         >
                                             Next

@@ -141,19 +141,19 @@ export default function AuditLogIndex({ logs, filters }: Props) {
                         </div>
 
                         {/* Pagination */}
-                        {logs.meta.last_page > 1 && (
+                        {logs.last_page > 1 && (
                             <div className="border-t border-gray-200 bg-white px-4 py-3 sm:px-6 flex items-center justify-between">
                                 <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                                     <div>
                                         <p className="text-sm text-gray-700">
-                                            Showing <span className="font-medium">{logs.meta.from}</span> to <span className="font-medium">{logs.meta.to}</span> of <span className="font-medium">{logs.meta.total}</span> results
+                                            Showing <span className="font-medium">{logs.from}</span> to <span className="font-medium">{logs.to}</span> of <span className="font-medium">{logs.total}</span> results
                                         </p>
                                     </div>
                                     <div>
                                         <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                                             <button
-                                                onClick={() => logs.links.prev && router.get(logs.links.prev)}
-                                                disabled={!logs.links.prev}
+                                                onClick={() => logs.prev_page_url && router.get(logs.prev_page_url)}
+                                                disabled={!logs.prev_page_url}
                                                 className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
                                             >
                                                 <span className="sr-only">Previous</span>
@@ -163,8 +163,8 @@ export default function AuditLogIndex({ logs, filters }: Props) {
                                             </button>
 
                                             <button
-                                                onClick={() => logs.links.next && router.get(logs.links.next)}
-                                                disabled={!logs.links.next}
+                                                onClick={() => logs.next_page_url && router.get(logs.next_page_url)}
+                                                disabled={!logs.next_page_url}
                                                 className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
                                             >
                                                 <span className="sr-only">Next</span>

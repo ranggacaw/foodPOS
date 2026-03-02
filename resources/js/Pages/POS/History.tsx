@@ -105,16 +105,16 @@ export default function History({ orders }: { orders: PaginatedData<Order> }) {
                         )}
 
                         {/* Pagination */}
-                        {orders.meta.last_page > 1 && (
+                        {orders.last_page > 1 && (
                             <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-3">
                                 <p className="text-sm text-gray-600">
-                                    Showing {orders.meta.from ?? 0} to {orders.meta.to ?? 0} of{' '}
-                                    {orders.meta.total} orders
+                                    Showing {orders.from ?? 0} to {orders.to ?? 0} of{' '}
+                                    {orders.total} orders
                                 </p>
                                 <div className="flex gap-2">
-                                    {orders.links.prev ? (
+                                    {orders.prev_page_url ? (
                                         <Link
-                                            href={orders.links.prev}
+                                            href={orders.prev_page_url}
                                             className="inline-flex h-9 items-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                         >
                                             Previous
@@ -124,9 +124,9 @@ export default function History({ orders }: { orders: PaginatedData<Order> }) {
                                             Previous
                                         </span>
                                     )}
-                                    {orders.links.next ? (
+                                    {orders.next_page_url ? (
                                         <Link
-                                            href={orders.links.next}
+                                            href={orders.next_page_url}
                                             className="inline-flex h-9 items-center rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                         >
                                             Next

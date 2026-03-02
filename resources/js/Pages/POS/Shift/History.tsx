@@ -81,19 +81,19 @@ export default function ShiftHistory({ shifts }: Props) {
                         </ul>
 
                         {/* Pagination */}
-                        {shifts.meta.last_page > 1 && (
+                        {shifts.last_page > 1 && (
                             <div className="border-t border-gray-200 bg-white px-4 py-3 sm:px-6 flex items-center justify-between">
                                 <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
                                     <div>
                                         <p className="text-sm text-gray-700">
-                                            Showing <span className="font-medium">{shifts.meta.from}</span> to <span className="font-medium">{shifts.meta.to}</span> of <span className="font-medium">{shifts.meta.total}</span> results
+                                            Showing <span className="font-medium">{shifts.from}</span> to <span className="font-medium">{shifts.to}</span> of <span className="font-medium">{shifts.total}</span> results
                                         </p>
                                     </div>
                                     <div>
                                         <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
                                             <button
-                                                onClick={() => shifts.links.prev && router.get(shifts.links.prev)}
-                                                disabled={!shifts.links.prev}
+                                                onClick={() => shifts.prev_page_url && router.get(shifts.prev_page_url)}
+                                                disabled={!shifts.prev_page_url}
                                                 className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
                                             >
                                                 <span className="sr-only">Previous</span>
@@ -103,8 +103,8 @@ export default function ShiftHistory({ shifts }: Props) {
                                             </button>
 
                                             <button
-                                                onClick={() => shifts.links.next && router.get(shifts.links.next)}
-                                                disabled={!shifts.links.next}
+                                                onClick={() => shifts.next_page_url && router.get(shifts.next_page_url)}
+                                                disabled={!shifts.next_page_url}
                                                 className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
                                             >
                                                 <span className="sr-only">Next</span>

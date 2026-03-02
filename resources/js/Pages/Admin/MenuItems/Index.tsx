@@ -125,11 +125,10 @@ export default function Index({
                                                 </td>
                                                 <td className="whitespace-nowrap px-6 py-4 text-sm">
                                                     <span
-                                                        className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                                                            item.is_active
+                                                        className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${item.is_active
                                                                 ? 'bg-green-100 text-green-800'
                                                                 : 'bg-red-100 text-red-800'
-                                                        }`}
+                                                            }`}
                                                     >
                                                         {item.is_active ? 'Active' : 'Inactive'}
                                                     </span>
@@ -168,21 +167,21 @@ export default function Index({
                         </div>
 
                         {/* Pagination */}
-                        {menuItems.meta.last_page > 1 && (
+                        {menuItems.last_page > 1 && (
                             <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
                                 <div className="text-sm text-gray-700">
                                     Showing{' '}
-                                    <span className="font-medium">{menuItems.meta.from}</span>{' '}
+                                    <span className="font-medium">{menuItems.from}</span>{' '}
                                     to{' '}
-                                    <span className="font-medium">{menuItems.meta.to}</span>{' '}
+                                    <span className="font-medium">{menuItems.to}</span>{' '}
                                     of{' '}
-                                    <span className="font-medium">{menuItems.meta.total}</span>{' '}
+                                    <span className="font-medium">{menuItems.total}</span>{' '}
                                     results
                                 </div>
                                 <div className="flex space-x-2">
-                                    {menuItems.links.prev ? (
+                                    {menuItems.prev_page_url ? (
                                         <Link
-                                            href={menuItems.links.prev}
+                                            href={menuItems.prev_page_url}
                                             className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                         >
                                             Previous
@@ -192,9 +191,9 @@ export default function Index({
                                             Previous
                                         </span>
                                     )}
-                                    {menuItems.links.next ? (
+                                    {menuItems.next_page_url ? (
                                         <Link
-                                            href={menuItems.links.next}
+                                            href={menuItems.next_page_url}
                                             className="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                         >
                                             Next
