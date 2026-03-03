@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import { Order, PaginatedData } from '@/types';
 
 const formatIDR = (value: number) =>
@@ -17,7 +18,19 @@ const paymentLabels: Record<string, string> = {
     qris: 'QRIS',
 };
 
-export default function History({ orders }: { orders: PaginatedData<Order> }) {
+export default function History({ orders, filters }: { orders: PaginatedData<Order>, filters: { from: string, to: string } }) {
+    const [from, setFrom] = useState(filters.from);
+    const [to, setTo] = useState(filters.to);
+
+    const handleFilter = (e: React.FormEvent) => {
+        e.preventDefault();
+        router.get(
+            route('pos.orders.history'),
+            { from, to },
+            { preserveState: true },
+        );
+    };
+
     const formatTime = (dateStr: string) => {
         const d = new Date(dateStr);
         return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
@@ -35,11 +48,56 @@ export default function History({ orders }: { orders: PaginatedData<Order> }) {
 
             <div className="py-8">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    {/* Date Range Filter */}
+                    <div className="mb-6 overflow-hidden bg-white p-4 shadow-sm sm:rounded-lg">
+                        <form
+                            onSubmit={handleFilter}
+                            className="flex flex-col gap-4 sm:flex-row sm:items-end"
+                        >
+                            <div>
+                                <label
+                                    htmlFor="from"
+                                    className="block text-sm font-medium text-gray-700"
+                                >
+                                    From
+                                </label>
+                                <input
+                                    id="from"
+                                    type="date"
+                                    value={from}
+                                    onChange={(e) => setFrom(e.target.value)}
+                                    className="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    htmlFor="to"
+                                    className="block text-sm font-medium text-gray-700"
+                                >
+                                    To
+                                </label>
+                                <input
+                                    id="to"
+                                    type="date"
+                                    value={to}
+                                    onChange={(e) => setTo(e.target.value)}
+                                    className="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                />
+                            </div>
+                            <button
+                                type="submit"
+                                className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                            >
+                                Filter
+                            </button>
+                        </form>
+                    </div>
+
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         {orders.data.length === 0 ? (
                             <div className="px-6 py-12 text-center text-gray-500">
-                                <p className="text-lg font-medium">No orders today</p>
-                                <p className="mt-1 text-sm">Orders placed today will appear here.</p>
+                                <p className="text-lg font-medium">No orders found</p>
+                                <p className="mt-1 text-sm">No orders placed in the selected date range.</p>
                                 <Link
                                     href={route('pos.index')}
                                     className="mt-4 inline-flex h-10 items-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700"

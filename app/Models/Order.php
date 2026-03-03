@@ -13,6 +13,7 @@ class Order extends Model
         'user_id',
         'shift_id',
         'subtotal',
+        'discount',
         'tax',
         'total',
         'payment_method',
@@ -25,6 +26,7 @@ class Order extends Model
     {
         return [
             'subtotal' => 'decimal:2',
+            'discount' => 'decimal:2',
             'tax' => 'decimal:2',
             'total' => 'decimal:2',
             'cancelled_at' => 'datetime',

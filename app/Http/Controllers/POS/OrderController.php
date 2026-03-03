@@ -39,10 +39,12 @@ class OrderController extends Controller
             'items.*.quantity' => ['required', 'integer', 'min:1'],
             'payment_method' => ['required', 'string', 'in:cash,card,qris'],
             'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'discount' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $order = DB::transaction(function () use ($validated, $request) {
             $taxRate = ($validated['tax_rate'] ?? 10) / 100;
+            $discount = (float) ($validated['discount'] ?? 0);
             $subtotal = 0;
             $orderItemsData = [];
 
@@ -80,8 +82,9 @@ class OrderController extends Controller
                 }
             }
 
-            $tax = round($subtotal * $taxRate, 2);
-            $total = round($subtotal + $tax, 2);
+            $subtotalAfterDiscount = max(0, $subtotal - $discount);
+            $tax = round($subtotalAfterDiscount * $taxRate, 2);
+            $total = round($subtotalAfterDiscount + $tax, 2);
 
             $shift_id = $request->user()->shifts()->where('status', 'open')->value('id');
 
@@ -90,6 +93,7 @@ class OrderController extends Controller
                 'user_id' => $request->user()->id,
                 'shift_id' => $shift_id,
                 'subtotal' => $subtotal,
+                'discount' => $discount,
                 'tax' => $tax,
                 'total' => $total,
                 'payment_method' => $validated['payment_method'],
@@ -114,14 +118,22 @@ class OrderController extends Controller
 
     public function history(Request $request): Response
     {
+        $from = $request->input('from', today()->toDateString());
+        $to = $request->input('to', today()->toDateString());
+
         $orders = Order::where('user_id', $request->user()->id)
-            ->whereDate('created_at', today())
+            ->whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
             ->orderByDesc('created_at')
             ->with('items.menuItem')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
 
         return Inertia::render('POS/History', [
             'orders' => $orders,
+            'filters' => [
+                'from' => $from,
+                'to' => $to,
+            ]
         ]);
     }
 }

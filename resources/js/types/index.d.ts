@@ -71,6 +71,7 @@ export interface Order {
     user_id: number;
     shift_id: number | null;
     subtotal: string;
+    discount?: string;
     tax: string;
     total: string;
     payment_method: "cash" | "card" | "qris";

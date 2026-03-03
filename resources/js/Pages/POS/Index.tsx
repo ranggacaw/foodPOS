@@ -23,6 +23,7 @@ export default function Index({ categories }: { categories: Category[] }) {
     const [processing, setProcessing] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [discount, setDiscount] = useState<number>(0);
 
     useEffect(() => {
         const handleFullscreenChange = () => {
@@ -95,8 +96,9 @@ export default function Index({ categories }: { categories: Category[] }) {
         (sum, item) => sum + parseFloat(item.menu_item.price) * item.quantity,
         0
     );
-    const tax = subtotal * (TAX_RATE / 100);
-    const total = subtotal + tax;
+    const subtotalAfterDiscount = Math.max(0, subtotal - discount);
+    const tax = subtotalAfterDiscount * (TAX_RATE / 100);
+    const total = subtotalAfterDiscount + tax;
 
     const placeOrder = () => {
         if (cart.length === 0 || processing) return;
@@ -110,10 +112,12 @@ export default function Index({ categories }: { categories: Category[] }) {
             })),
             payment_method: paymentMethod,
             tax_rate: TAX_RATE,
+            discount: discount,
         }, {
             onSuccess: () => {
                 setCart([]);
                 setPaymentMethod('cash');
+                setDiscount(0);
             },
             onFinish: () => {
                 setProcessing(false);
@@ -177,8 +181,8 @@ export default function Index({ categories }: { categories: Category[] }) {
                             <button
                                 onClick={() => setActiveCategory(null)}
                                 className={`flex-shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${activeCategory === null
-                                        ? 'bg-indigo-600 text-white shadow-sm'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    ? 'bg-indigo-600 text-white shadow-sm'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                     }`}
                             >
                                 All Items
@@ -188,8 +192,8 @@ export default function Index({ categories }: { categories: Category[] }) {
                                     key={category.id}
                                     onClick={() => setActiveCategory(category.id)}
                                     className={`flex-shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${activeCategory === category.id
-                                            ? 'bg-indigo-600 text-white shadow-sm'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        ? 'bg-indigo-600 text-white shadow-sm'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
                                 >
                                     {category.name}
@@ -362,6 +366,20 @@ export default function Index({ categories }: { categories: Category[] }) {
                                 <span>Subtotal</span>
                                 <span>{formatIDR(subtotal)}</span>
                             </div>
+                            <div className="flex justify-between items-center text-gray-600">
+                                <span>Discount</span>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-gray-400">Rp</span>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        className="w-24 rounded-lg border border-gray-300 py-1 px-2 text-right text-sm text-gray-900 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                        value={discount || ''}
+                                        onChange={(e) => setDiscount(Math.max(0, Number(e.target.value)))}
+                                        placeholder="0"
+                                    />
+                                </div>
+                            </div>
                             <div className="flex justify-between text-gray-600">
                                 <span>Tax (PPN {TAX_RATE}%)</span>
                                 <span>{formatIDR(tax)}</span>
@@ -383,8 +401,8 @@ export default function Index({ categories }: { categories: Category[] }) {
                                         key={method}
                                         onClick={() => setPaymentMethod(method)}
                                         className={`h-10 rounded-lg text-sm font-medium transition-colors ${paymentMethod === method
-                                                ? 'bg-indigo-600 text-white shadow-sm'
-                                                : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
+                                            ? 'bg-indigo-600 text-white shadow-sm'
+                                            : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
                                             }`}
                                     >
                                         {method === 'cash' ? 'Cash' : method === 'card' ? 'Card' : 'QRIS'}

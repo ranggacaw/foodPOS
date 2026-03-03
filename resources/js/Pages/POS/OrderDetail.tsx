@@ -151,6 +151,12 @@ export default function OrderDetail({ order }: { order: Order }) {
                                     <span>Subtotal</span>
                                     <span>{formatIDR(parseFloat(order.subtotal))}</span>
                                 </div>
+                                {parseFloat(order.discount || '0') > 0 && (
+                                    <div className="flex w-60 justify-between text-gray-600">
+                                        <span>Discount</span>
+                                        <span>-{formatIDR(parseFloat(order.discount || '0'))}</span>
+                                    </div>
+                                )}
                                 <div className="flex w-60 justify-between text-gray-600">
                                     <span>Tax</span>
                                     <span>{formatIDR(parseFloat(order.tax))}</span>

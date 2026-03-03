@@ -23,17 +23,31 @@ class TransactionHistoryController extends Controller
             ? "date(datetime(created_at, '+7 hours'))"
             : "DATE(DATE_ADD(created_at, INTERVAL 7 HOUR))";
 
+        $from = $request->input('from');
+        $to = $request->input('to');
+
         $query = Order::query()
             ->select(
                 DB::raw("$dateExpression as date"),
                 DB::raw("COUNT(id) as order_count"),
                 DB::raw("SUM(total) as total_revenue")
             )
-            ->where('status', 'completed')
-            ->groupBy(DB::raw($dateExpression))
+            ->where('status', 'completed');
+
+        if ($from) {
+            $fromStart = Carbon::parse($from, 'Asia/Jakarta')->startOfDay()->setTimezone('UTC');
+            $query->where('created_at', '>=', $fromStart);
+        }
+
+        if ($to) {
+            $toEnd = Carbon::parse($to, 'Asia/Jakarta')->endOfDay()->setTimezone('UTC');
+            $query->where('created_at', '<=', $toEnd);
+        }
+
+        $query->groupBy(DB::raw($dateExpression))
             ->orderBy('date', 'desc');
 
-        $summaries = $query->paginate(15);
+        $summaries = $query->paginate(15)->withQueryString();
 
         $summaries->getCollection()->transform(function ($item) {
             $item->total_revenue = (float) $item->total_revenue;
@@ -42,7 +56,11 @@ class TransactionHistoryController extends Controller
         });
 
         return Inertia::render('POS/TransactionHistory', [
-            'summaries' => $summaries
+            'summaries' => $summaries,
+            'filters' => [
+                'from' => $from ?? '',
+                'to' => $to ?? '',
+            ]
         ]);
     }
 
