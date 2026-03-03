@@ -666,13 +666,14 @@ Based on conversation history and codebase analysis:
 
 ### Planned / In-Progress Features
 
-| Feature                      | Status                     | Reference            |
-| ---------------------------- | -------------------------- | -------------------- |
-| Refund & void management     | Implementation started     | Conversation history |
-| Cashier shift management     | Implementation started     | Conversation history |
-| Production batch management  | Implementation started     | Conversation history |
-| Business reports & analytics | Implementation started     | Conversation history |
-| Supplier management          | Frontend pages in progress | Conversation history |
+| Feature                      | Status                     | Reference                 |
+| ---------------------------- | -------------------------- | ------------------------- |
+| Refund & void management     | Implementation started     | Conversation history      |
+| Cashier shift management     | Implementation started     | Conversation history      |
+| Production batch management  | Implementation started     | Conversation history      |
+| Business reports & analytics | Implementation started     | Conversation history      |
+| Supplier management          | Frontend pages in progress | Conversation history      |
+| Transaction History          | Implemented                | `add-transaction-history` |
 
 ### Deferred Scope
 

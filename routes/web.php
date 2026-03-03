@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\CancelOrderController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\POS\OrderController;
 use App\Http\Controllers\POS\ShiftController;
+use App\Http\Controllers\POS\TransactionHistoryController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -82,6 +83,10 @@ Route::middleware(['auth', 'verified'])
         Route::post('/orders', [OrderController::class, 'store'])->name('orders.store');
         Route::get('/orders/history', [OrderController::class, 'history'])->name('orders.history');
         Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+
+        // Transaction History
+        Route::get('/history', [TransactionHistoryController::class, 'index'])->name('history.index');
+        Route::get('/history/{date}', [TransactionHistoryController::class, 'show'])->name('history.show');
 
         // Shifts
         Route::get('/shifts', [ShiftController::class, 'index'])->name('shifts.index');

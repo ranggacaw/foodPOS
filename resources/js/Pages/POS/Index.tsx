@@ -1,6 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Category, MenuItem } from '@/types';
 
 interface CartItem {
@@ -21,14 +21,45 @@ export default function Index({ categories }: { categories: Category[] }) {
     const [activeCategory, setActiveCategory] = useState<number | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
     const [processing, setProcessing] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch((err) => {
+                console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    };
 
     const filteredItems = useMemo(() => {
-        if (activeCategory === null) {
-            return categories.flatMap((c) => c.menu_items ?? []);
-        }
-        const cat = categories.find((c) => c.id === activeCategory);
-        return cat?.menu_items ?? [];
-    }, [categories, activeCategory]);
+        const baseItems =
+            activeCategory === null
+                ? categories.flatMap((c) => c.menu_items ?? [])
+                : (categories.find((c) => c.id === activeCategory)?.menu_items ?? []);
+
+        if (!searchQuery.trim()) return baseItems;
+
+        const q = searchQuery.toLowerCase().trim();
+        return baseItems.filter(
+            (item) =>
+                item.name.toLowerCase().includes(q) ||
+                (item.description ?? '').toLowerCase().includes(q)
+        );
+    }, [categories, activeCategory, searchQuery]);
 
     const addToCart = (item: MenuItem) => {
         setCart((prev) => {
@@ -91,22 +122,64 @@ export default function Index({ categories }: { categories: Category[] }) {
     };
 
     return (
-        <AuthenticatedLayout>
+        <AuthenticatedLayout hideNavigation={isFullscreen}>
             <Head title="POS" />
 
-            <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+            <div className={`flex overflow-hidden ${isFullscreen ? 'h-screen' : 'h-[calc(100vh-4rem)]'}`}>
                 {/* Left Panel - Menu Items */}
                 <div className="flex w-[62%] flex-col overflow-hidden border-r border-gray-200">
+                    {/* Search Bar */}
+                    <div className="flex-shrink-0 bg-white px-4 pt-4 pb-3 border-b border-gray-100">
+                        <div className="relative">
+                            {/* Search Icon */}
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <svg
+                                    className="h-4 w-4 text-gray-400"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                                    />
+                                </svg>
+                            </div>
+
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Search menu items…"
+                                className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-9 text-sm text-gray-900 placeholder-gray-400 outline-none transition-all focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"
+                            />
+
+                            {/* Clear Button */}
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 transition-colors"
+                                    aria-label="Clear search"
+                                >
+                                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
                     {/* Category Tabs */}
-                    <div className="flex-shrink-0 border-b border-gray-200 bg-white px-4 pt-4">
+                    <div className="flex-shrink-0 border-b border-gray-200 bg-white px-4 pt-3">
                         <div className="flex gap-2 overflow-x-auto pb-3">
                             <button
                                 onClick={() => setActiveCategory(null)}
-                                className={`flex-shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-                                    activeCategory === null
+                                className={`flex-shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${activeCategory === null
                                         ? 'bg-indigo-600 text-white shadow-sm'
                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
+                                    }`}
                             >
                                 All Items
                             </button>
@@ -114,11 +187,10 @@ export default function Index({ categories }: { categories: Category[] }) {
                                 <button
                                     key={category.id}
                                     onClick={() => setActiveCategory(category.id)}
-                                    className={`flex-shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-                                        activeCategory === category.id
+                                    className={`flex-shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${activeCategory === category.id
                                             ? 'bg-indigo-600 text-white shadow-sm'
                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
+                                        }`}
                                 >
                                     {category.name}
                                 </button>
@@ -128,9 +200,33 @@ export default function Index({ categories }: { categories: Category[] }) {
 
                     {/* Menu Items Grid */}
                     <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
+                        {/* Result count when searching */}
+                        {searchQuery.trim() && (
+                            <p className="mb-3 text-xs font-medium text-gray-500">
+                                {filteredItems.length === 0
+                                    ? 'No results'
+                                    : `${filteredItems.length} result${filteredItems.length !== 1 ? 's' : ''} for "${searchQuery.trim()}"`}
+                            </p>
+                        )}
+
                         {filteredItems.length === 0 ? (
-                            <div className="flex h-full items-center justify-center text-gray-400">
-                                No items found in this category.
+                            <div className="flex h-full flex-col items-center justify-center text-gray-400">
+                                {searchQuery.trim() ? (
+                                    <>
+                                        <svg className="mb-3 h-10 w-10 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                                        </svg>
+                                        <p className="text-sm">No items match "{searchQuery}"</p>
+                                        <button
+                                            onClick={() => setSearchQuery('')}
+                                            className="mt-2 text-xs text-indigo-500 hover:text-indigo-700 underline underline-offset-2"
+                                        >
+                                            Clear search
+                                        </button>
+                                    </>
+                                ) : (
+                                    <p className="text-sm">No items found in this category.</p>
+                                )}
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 gap-3 xl:grid-cols-3">
@@ -161,8 +257,29 @@ export default function Index({ categories }: { categories: Category[] }) {
                 {/* Right Panel - Cart */}
                 <div className="flex w-[38%] flex-col bg-white">
                     {/* Cart Header */}
-                    <div className="flex-shrink-0 border-b border-gray-200 px-5 py-4">
+                    <div className="flex-shrink-0 border-b border-gray-200 px-5 py-4 flex items-center justify-between">
                         <h2 className="text-lg font-bold text-gray-900">Current Order</h2>
+                        <button
+                            onClick={toggleFullscreen}
+                            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                        >
+                            {isFullscreen ? (
+                                <>
+                                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9V4.5M15 9h4.5M15 9l5.25-5.25M15 15v4.5M15 15h4.5M15 15l5.25 5.25" />
+                                    </svg>
+                                    <span className="hidden sm:inline">Exit Fullscreen</span>
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75v4.5m0-4.5h-4.5m4.5 0L15 9m5.25 11.25v-4.5m0 4.5h-4.5m4.5 0L15 15" />
+                                    </svg>
+                                    <span className="hidden sm:inline">Fullscreen</span>
+                                </>
+                            )}
+                        </button>
                     </div>
 
                     {/* Cart Items */}
@@ -265,11 +382,10 @@ export default function Index({ categories }: { categories: Category[] }) {
                                     <button
                                         key={method}
                                         onClick={() => setPaymentMethod(method)}
-                                        className={`h-10 rounded-lg text-sm font-medium transition-colors ${
-                                            paymentMethod === method
+                                        className={`h-10 rounded-lg text-sm font-medium transition-colors ${paymentMethod === method
                                                 ? 'bg-indigo-600 text-white shadow-sm'
                                                 : 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100'
-                                        }`}
+                                            }`}
                                     >
                                         {method === 'cash' ? 'Cash' : method === 'card' ? 'Card' : 'QRIS'}
                                     </button>

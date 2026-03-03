@@ -145,6 +145,12 @@ export interface ActivityLog {
     user?: User;
 }
 
+export interface DaySummary {
+    date: string;
+    order_count: number;
+    total_revenue: number;
+}
+
 export type PageProps<T extends object = Record<string, unknown>> = T & {
     auth: {
         user: User;
