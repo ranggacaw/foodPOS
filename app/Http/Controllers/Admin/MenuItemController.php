@@ -88,9 +88,15 @@ class MenuItemController extends Controller
 
     public function destroy(MenuItem $menuItem): RedirectResponse
     {
-        $menuItem->delete();
-
-        return to_route('admin.menu-items.index')
-            ->with('success', 'Menu item deleted successfully.');
+        try {
+            $menuItem->delete();
+            return to_route('admin.menu-items.index')
+                ->with('success', 'Menu item deleted successfully.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            // If we can't delete it due to foreign key constraints (like past orders)
+            // we will deactivate it instead so it no longer shows up for sale.
+            $menuItem->update(['is_active' => false]);
+            return back()->with('success', 'Menu item could not be fully deleted due to past orders, but it has been deactivated and hidden from the POS.');
+        }
     }
 }

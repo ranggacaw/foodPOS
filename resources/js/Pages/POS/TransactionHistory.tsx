@@ -34,10 +34,10 @@ export default function TransactionHistory({ summaries, filters }: { summaries: 
         >
             <Head title="Transaction History" />
 
-            <div className="py-8">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="py-12">
+                <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
                     {/* Date Range Filter */}
-                    <div className="mb-6 overflow-hidden bg-white p-4 shadow-sm sm:rounded-lg">
+                    <div className="mb-8 overflow-hidden bg-white p-6 shadow-sm sm:rounded-lg">
                         <form
                             onSubmit={handleFilter}
                             className="flex flex-col gap-4 sm:flex-row sm:items-end"
@@ -82,6 +82,11 @@ export default function TransactionHistory({ summaries, filters }: { summaries: 
                     </div>
 
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                        <div className="border-b border-gray-200 px-6 py-4">
+                            <h3 className="text-lg font-medium text-gray-900">
+                                Daily Transactions
+                            </h3>
+                        </div>
                         {summaries.data.length === 0 ? (
                             <div className="px-6 py-12 text-center text-gray-500">
                                 <p className="text-lg font-medium">No transaction history found</p>
@@ -95,34 +100,42 @@ export default function TransactionHistory({ summaries, filters }: { summaries: 
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-gray-200 bg-gray-50 text-left text-gray-500">
-                                            <th className="px-6 py-3 font-medium">Date</th>
-                                            <th className="px-6 py-3 text-center font-medium">Orders</th>
-                                            <th className="px-6 py-3 text-right font-medium">Total Revenue</th>
-                                            <th className="px-6 py-3 text-right font-medium">Actions</th>
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                                Date
+                                            </th>
+                                            <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider text-gray-500">
+                                                Orders
+                                            </th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                                                Total Revenue
+                                            </th>
+                                            <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
+                                                Actions
+                                            </th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody className="divide-y divide-gray-200 bg-white">
                                         {summaries.data.map((summary) => (
                                             <tr
                                                 key={summary.date}
-                                                className="border-b border-gray-100 hover:bg-gray-50"
+                                                className="hover:bg-gray-50"
                                             >
-                                                <td className="px-6 py-4 font-medium text-gray-900">
+                                                <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                                                     {formatDate(summary.date)}
                                                 </td>
-                                                <td className="px-6 py-4 text-center text-gray-600">
+                                                <td className="whitespace-nowrap px-6 py-4 text-center text-sm text-gray-500">
                                                     {summary.order_count}
                                                 </td>
-                                                <td className="px-6 py-4 text-right font-medium text-gray-900">
+                                                <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium text-gray-900">
                                                     {formatIDR(summary.total_revenue)}
                                                 </td>
-                                                <td className="px-6 py-4 text-right">
+                                                <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                                                     <Link
                                                         href={route('pos.history.show', summary.date)}
-                                                        className="font-medium text-indigo-600 hover:text-indigo-800"
+                                                        className="text-indigo-600 hover:text-indigo-900"
                                                     >
                                                         View Details
                                                     </Link>
@@ -136,10 +149,10 @@ export default function TransactionHistory({ summaries, filters }: { summaries: 
 
                         {/* Pagination */}
                         {summaries.last_page > 1 && (
-                            <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-3">
-                                <p className="text-sm text-gray-600">
-                                    Showing {summaries.from ?? 0} to {summaries.to ?? 0} of{' '}
-                                    {summaries.total} days
+                            <div className="flex items-center justify-between border-t border-gray-200 bg-white px-6 py-3">
+                                <p className="text-sm text-gray-700">
+                                    Showing <span className="font-medium">{summaries.from ?? 0}</span> to <span className="font-medium">{summaries.to ?? 0}</span> of{' '}
+                                    <span className="font-medium">{summaries.total}</span> days
                                 </p>
                                 <div className="flex gap-2">
                                     {summaries.prev_page_url ? (

@@ -64,9 +64,23 @@ class CategoryController extends Controller
 
     public function destroy(Category $category): RedirectResponse
     {
-        $category->delete();
+        try {
+            // Attempt to delete associated menu items first to allow category deletion
+            foreach ($category->menuItems as $item) {
+                try {
+                    $item->delete();
+                } catch (\Illuminate\Database\QueryException $e) {
+                    $item->update(['is_active' => false]);
+                }
+            }
 
-        return to_route('admin.categories.index')
-            ->with('success', 'Category deleted successfully.');
+            $category->delete();
+            return to_route('admin.categories.index')
+                ->with('success', 'Category deleted successfully.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            // If it still can't be deleted completely, just disable it
+            $category->update(['is_active' => false]);
+            return back()->with('success', 'Category (and related menu items) could not be fully deleted due to existing records, but have been deactivated.');
+        }
     }
 }
