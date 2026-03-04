@@ -1,7 +1,7 @@
 # cashier-shift-management Specification
 
 ## Purpose
-TBD - created by archiving change add-cashier-shift-management. Update Purpose after archive.
+The cashier-shift-management capability enables tracking of cashier work sessions with cash drawer accountability. It supports opening and closing shifts, recording opening and closing cash amounts, associating orders with active shifts, and generating shift summaries with revenue and payment method breakdowns. This feature is essential for cash-handling operational control and reconciliation in restaurant POS operations.
 ## Requirements
 ### Requirement: Shift Open
 

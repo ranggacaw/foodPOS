@@ -1,6 +1,6 @@
 # AGENTS — Project Knowledge Base
 
-> **Last updated:** 2026-02-26
+> **Last updated:** 2026-03-04
 > **Generated from:** Codebase analysis (no DOCS_ROOT_PATH found — see Section 23)
 
 ---
@@ -91,7 +91,7 @@
 
 | Boundary                                                   | Responsibility                                                                                                         |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **POS** (`App\Http\Controllers\POS`)                       | Order creation, order detail view, cashier order history                                                               |
+| **POS** (`App\Http\Controllers\POS`)                       | Order creation, order detail view, cashier order history, transaction history, shift management                         |
 | **Admin** (`App\Http\Controllers\Admin`)                   | CRUD for categories, menu items, ingredients, recipes, inventory; sales reports; **order cancellation**; **audit log** |
 | **Dashboard** (`App\Http\Controllers\DashboardController`) | Aggregated KPIs for authenticated users                                                                                |
 | **Auth** (`App\Http\Controllers\Auth`)                     | Login, registration, password reset, email verification (Breeze)                                                       |
@@ -137,7 +137,8 @@ foodPOS/
 │   │   │   ├── Auth/                            # Breeze auth controllers
 │   │   │   ├── POS/
 │   │   │   │   ├── OrderController.php          # POS terminal + order CRUD
-│   │   │   │   └── ShiftController.php          # Cashier shift opening & closing
+│   │   │   │   ├── ShiftController.php          # Cashier shift opening & closing
+│   │   │   │   └── TransactionHistoryController.php  # Transaction history & daily summaries
 │   │   │   ├── Controller.php                   # Base controller
 │   │   │   ├── DashboardController.php          # KPI dashboard
 │   │   │   └── ProfileController.php            # Profile edit/delete
@@ -155,12 +156,13 @@ foodPOS/
 │   │   ├── Order.php
 │   │   ├── OrderItem.php
 │   │   ├── Recipe.php
+│   │   ├── Shift.php
 │   │   └── User.php
 │   └── Providers/
 │       └── AppServiceProvider.php
 ├── database/
 │   ├── factories/UserFactory.php
-│   ├── migrations/                              # 12 migration files
+│   ├── migrations/                              # 17 migration files
 │   └── seeders/
 │       ├── AdminSeeder.php                      # Default admin + cashier users
 │       ├── DatabaseSeeder.php
@@ -255,7 +257,13 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 
 - Default tax rate: **10%** (configurable per order via `tax_rate` parameter, range 0–100%)
 - `tax = round(subtotal × tax_rate, 2)`
-- `total = round(subtotal + tax, 2)`
+- `total = round(subtotal - discount + tax, 2)`
+
+#### Discount Calculation
+
+- Optional discount field on orders (numeric, min: 0)
+- Applied before tax: `total = round((subtotal - discount) + tax, 2)`
+- Discount can be a fixed amount (e.g., 5000) or percentage
 
 #### COGS Calculation
 
@@ -293,6 +301,7 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 | Trigger            | Side Effect                                          |
 | ------------------ | ---------------------------------------------------- |
 | Order created      | Inventory quantities decremented per recipe BOM      |
+| Order cancelled    | Inventory quantities restored (reversed per recipe) |
 | Ingredient created | Inventory row auto-created (qty=0, threshold=0)      |
 | MenuItem deleted   | Recipes cascade-deleted (FK constraint)              |
 | Category deleted   | MenuItems cascade-deleted (FK constraint)            |
@@ -351,27 +360,58 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
      │             │ ingredient_id│ (FK)
      │             │ quantity     │
      │             │ timestamps   │
-     │             └──────────────┘
-     │             unique(menu_item_id, ingredient_id)
-     │
-     ▼
-┌──────────┐       ┌──────────────┐
-│  orders  │──1:N──│ order_items  │
-├──────────┤       ├──────────────┤
-│ id       │       │ id           │
-│ order_number│    │ order_id     │ (FK)
-│ user_id  │ (FK)  │ menu_item_id │ (FK)
-│ subtotal │       │ quantity     │
-│ tax      │       │ unit_price   │
-│ total    │       │ subtotal     │
-│ payment_ │       │ cost         │ (COGS snapshot)
-│  method  │       │ timestamps   │
-│ status   │       └──────────────┘
-│ timestamps│
-└──────────┘
-```
+      │             └──────────────┘
+      │             unique(menu_item_id, ingredient_id)
+      │
+      ▼
+ ┌──────────┐
+ │  orders  │
+ ├──────────┤
+ │ id       │
+ │ order_number│
+ │ user_id  │ (FK)
+ │ shift_id │ (nullable FK)
+ │ subtotal │
+ │ tax      │
+ │ total    │
+ │ payment_ │
+ │  method  │
+ │ status   │
+ │ timestamps│
+ └────┬─────┘
+      │ 1:N
+      │
+      ▼
+ ┌──────────┐
+ │  shifts  │
+ ├──────────┤
+ │ id       │
+ │ user_id  │ (FK)
+ │ opened_at│
+ │ closed_at│ (nullable)
+ │ opening_cash│
+ │ closing_cash│ (nullable)
+ │ notes    │ (nullable)
+ │ status   │ (enum: open|closed)
+ └──────────┘
+      │ 1:N
+      │
+      ▼
+ ┌──────────────┐
+ │ order_items  │
+ ├──────────────┤
+ │ id           │
+ │ order_id     │ (FK)
+ │ menu_item_id │ (FK)
+ │ quantity     │
+ │ unit_price   │
+ │ subtotal     │
+ │ cost         │ (COGS snapshot)
+ │ timestamps   │
+ └──────────────┘
+ ```
 
-### Entity Definitions
+ ### Entity Definitions
 
 | Entity          | Key Attributes                                                                                                                                       | Notes                                                                                          |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
@@ -381,15 +421,17 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 | **Ingredient**  | id, name, unit, cost_per_unit                                                                                                                        | Unit examples: `kg`, `liter`, `pcs`                                                            |
 | **Recipe**      | id, menu_item_id, ingredient_id, quantity                                                                                                            | BOM junction table; unique constraint on (menu_item_id, ingredient_id)                         |
 | **Inventory**   | id, ingredient_id, quantity_on_hand, restock_threshold                                                                                               | 1:1 with Ingredient; unique constraint on ingredient_id                                        |
-| **Order**       | id, order_number, user_id, subtotal, tax, total, payment_method, status, **cancelled_by** (nullable FK→users), **cancelled_at** (nullable timestamp) | Auto-generated order_number: `ORD-YYYYMMDD-NNNN`. `cancelled_by` / `cancelled_at` set on void. |
+| **Order**       | id, order_number, user_id, shift_id (nullable FK→shifts), subtotal, **discount**, tax, total, payment_method, status, **cancelled_by** (nullable FK→users), **cancelled_at** (nullable timestamp) | Auto-generated order_number: `ORD-YYYYMMDD-NNNN`. `shift_id` links order to cashier's active shift. `cancelled_by` / `cancelled_at` set on void. Discount is optional (default 0). |
 | **OrderItem**   | id, order_id, menu_item_id, quantity, unit_price, subtotal, cost                                                                                     | Price & COGS snapshots at time of order                                                        |
-| **ActivityLog** | id, user_id, action, model_type, model_id, payload, ip_address, created_at                                                                           | Immutable record of system changes, managed by `AuditLogger` Service and Eloquent Observers.   |
+| **Shift**       | id, user_id (FK→users), opened_at, closed_at (nullable), opening_cash, closing_cash (nullable), notes (nullable), status (enum: open|closed)           | Cashier work session for cash drawer accountability. One active shift per cashier at a time. Includes `expectedClosingCash()` method for reconciliation.  |
+| **ActivityLog** | id, user_id, action, model_type, model_id, payload, ip_address, created_at                                                                           | Immutable record of system changes. Models override `save()` and `delete()` to prevent modification. |
 
 ### Decimal Precision
 
 | Field                         | Precision       |
 | ----------------------------- | --------------- |
 | Prices, totals, costs (money) | `DECIMAL(12,2)` |
+| Shift opening/closing cash    | `DECIMAL(12,2)` |
 | Recipe quantities             | `DECIMAL(10,4)` |
 | Inventory quantities          | `DECIMAL(12,4)` |
 
@@ -411,6 +453,9 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 | **Low Stock**         | When `quantity_on_hand ≤ restock_threshold`                                                          |
 | **Order Number**      | Auto-generated unique identifier: `ORD-YYYYMMDD-NNNN`                                                |
 | **QRIS**              | Quick Response Code Indonesian Standard — a digital payment method                                   |
+| **Shift**             | A cashier work session tracking opening/closing cash for cash drawer accountability                  |
+| **Opening Cash**      | Cash amount at the start of a shift                                                                   |
+| **Closing Cash**      | Cash amount at the end of a shift, entered during shift close                                         |
 
 ### Status Enumerations
 
@@ -419,6 +464,7 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 | User   | role           | `admin`, `cashier`                  |
 | Order  | status         | `pending`, `completed`, `cancelled` |
 | Order  | payment_method | `cash`, `card`, `qris`              |
+| Shift  | status         | `open`, `closed`                    |
 
 ---
 
@@ -438,6 +484,7 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 | Dashboard (`/dashboard`)                          | ✅       | ✅       |
 | POS Terminal (`/pos`)                             | ✅       | ✅       |
 | Order History (`/pos/orders/history`)             | ✅ (own) | ✅ (own) |
+| Shift Management (`/pos/shifts`)                  | ✅ (all) | ✅ (own) |
 | Category CRUD (`/admin/categories`)               | ✅       | ❌ (403) |
 | Menu Item CRUD (`/admin/menu-items`)              | ✅       | ❌ (403) |
 | Ingredient CRUD (`/admin/ingredients`)            | ✅       | ❌ (403) |
@@ -511,7 +558,7 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 
 ### Audit Logging
 
-- **Not implemented.** No audit trail tables or events exist. This is a gap.
+- **Implemented via ActivityLog model.** The `activity_logs` table records all system changes with user_id, action, model_type, model_id, payload, and ip_address. ActivityLog model prevents updates/deletions to maintain immutability.
 
 ### Sensitive Data Handling
 
@@ -668,12 +715,12 @@ Based on conversation history and codebase analysis:
 
 | Feature                      | Status                     | Reference                 |
 | ---------------------------- | -------------------------- | ------------------------- |
-| Refund & void management     | Implementation started     | Conversation history      |
-| Cashier shift management     | Implementation started     | Conversation history      |
+| Refund & void management     | Implemented                | `CancelOrderController`, `admin.orders.cancel` route |
+| Cashier shift management     | Implemented                | `Shift` model, `ShiftController`, `/pos/shifts` routes |
+| Transaction History          | Implemented                | `TransactionHistoryController`, `/pos/history` routes |
 | Production batch management  | Implementation started     | Conversation history      |
-| Business reports & analytics | Implementation started     | Conversation history      |
-| Supplier management          | Frontend pages in progress | Conversation history      |
-| Transaction History          | Implemented                | `add-transaction-history` |
+| Business reports & analytics | Implemented                | `ReportController`, `/admin/reports` route |
+| Supplier management          | Not started                | -                         |
 
 ### Deferred Scope
 
@@ -690,7 +737,6 @@ Based on conversation history and codebase analysis:
 | ------------------------------ | -------- | -------------------------------------------------------------------------------- |
 | No service layer               | Medium   | Business logic lives in controllers; should be extracted to service classes      |
 | No form requests               | Medium   | Most controllers use inline validation instead of FormRequest classes            |
-| No audit trail                 | High     | No logging of who changed what and when                                          |
 | Negative inventory allowed     | Medium   | No guard prevents stock going below zero                                         |
 | Default seeder passwords       | High     | Admin/cashier seeded with `password` — must change in production                 |
 | No image upload                | Low      | MenuItem `image` field exists but no file upload implementation                  |
@@ -717,7 +763,6 @@ Based on conversation history and codebase analysis:
 ### Incomplete Implementations
 
 - **Image upload:** The `MenuItem.image` column exists but no file upload/storage logic is implemented.
-- **Order cancellation:** The `cancelled` status exists but no cancel endpoint or workflow is implemented.
 - **Pending status:** Orders are immediately set to `completed` — no pending → completed flow exists.
 - **Pagination inconsistency:** Inventory uses `->get()` (loads all); other listings use `->paginate(15)`.
 
@@ -978,7 +1023,6 @@ No documentation directory matching the expected `DOCS_ROOT_PATH` structure was 
 | **Monitoring / observability**    | No APM, health checks (beyond `/up`), or error tracking configured                                                               |
 | **API rate limiting**             | No rate limiting configured for order creation or admin operations                                                               |
 | **Image upload implementation**   | `MenuItem.image` field exists but no file upload controller/storage logic                                                        |
-| **Order cancellation workflow**   | `cancelled` status exists but no endpoint to cancel orders                                                                       |
 | **Multi-language support**        | Conversation history mentions ID/EN language switching, but no i18n setup found in codebase                                      |
 | **Production seeder credentials** | `AdminSeeder` uses plaintext `password` — production credentials not documented                                                  |
 | **`prompter/project.md`**         | Still contains placeholder template text; project conventions not filled in                                                      |
