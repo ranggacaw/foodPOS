@@ -91,9 +91,9 @@
 
 | Boundary                                                   | Responsibility                                                                                                         |
 | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **POS** (`App\Http\Controllers\POS`)                       | Order creation, order detail view, cashier order history, transaction history, shift management                         |
-| **Admin** (`App\Http\Controllers\Admin`)                   | CRUD for categories, menu items, ingredients, recipes, inventory; sales reports; **order cancellation**; **audit log** |
-| **Dashboard** (`App\Http\Controllers\DashboardController`) | Aggregated KPIs for authenticated users                                                                                |
+| **POS** (`App\Http\Controllers\POS`)                       | Order creation, order detail view, cashier order history, transaction history, shift management (branch-scoped)         |
+| **Admin** (`App\Http\Controllers\Admin`)                   | CRUD for categories, menu items, ingredients, recipes, inventory, **branches**; sales reports; **order cancellation**; **audit log** |
+| **Dashboard** (`App\Http\Controllers\DashboardController`) | Aggregated KPIs for authenticated users (branch-scoped for non-global admins)                                        |
 | **Auth** (`App\Http\Controllers\Auth`)                     | Login, registration, password reset, email verification (Breeze)                                                       |
 | **Profile** (`App\Http\Controllers\ProfileController`)     | User profile editing and account deletion                                                                              |
 
@@ -126,6 +126,7 @@ foodPOS/
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── Admin/
+│   │   │   │   ├── BranchController.php       # CRUD branches
 │   │   │   │   ├── CategoryController.php      # CRUD categories
 │   │   │   │   ├── AuditLogController.php      # View activity logs
 │   │   │   │   ├── CancelOrderController.php   # Void completed orders (admin-only)
@@ -144,11 +145,13 @@ foodPOS/
 │   │   │   └── ProfileController.php            # Profile edit/delete
 │   │   ├── Middleware/
 │   │   │   ├── HandleInertiaRequests.php         # Inertia shared data
-│   │   │   └── RoleMiddleware.php                # Simple role gate
+│   │   │   ├── RoleMiddleware.php                # Simple role gate
+│   │   │   └── SetBranchContext.php            # Branch scoping middleware
 │   │   └── Requests/
 │   │       ├── Auth/LoginRequest.php
 │   │       └── ProfileUpdateRequest.php
 │   ├── Models/
+│   │   ├── Branch.php
 │   │   ├── Category.php
 │   │   ├── Ingredient.php
 │   │   ├── Inventory.php
@@ -158,6 +161,8 @@ foodPOS/
 │   │   ├── Recipe.php
 │   │   ├── Shift.php
 │   │   └── User.php
+│   ├── Services/
+│   │   └── BranchContext.php                  # Active branch session helper
 │   └── Providers/
 │       └── AppServiceProvider.php
 ├── database/
@@ -172,12 +177,12 @@ foodPOS/
 │   ├── js/
 │   │   ├── app.tsx                              # Inertia SPA bootstrap
 │   │   ├── bootstrap.ts                         # Axios setup
-│   │   ├── Components/                          # 12 reusable React components
+│   │   ├── Components/                          # 13 reusable React components
 │   │   ├── Layouts/
-│   │   │   ├── AuthenticatedLayout.tsx          # Main app shell with nav
+│   │   │   ├── AuthenticatedLayout.tsx          # Main app shell with nav and branch switcher
 │   │   │   └── GuestLayout.tsx                  # Auth pages shell
 │   │   ├── Pages/
-│   │   │   ├── Admin/                           # Admin pages (Categories, Ingredients, Inventory, MenuItems, Recipes, Reports)
+│   │   │   ├── Admin/                           # Admin pages (Branches, Categories, Ingredients, Inventory, MenuItems, Recipes, Reports)
 │   │   │   ├── Auth/                            # Login, Register, ForgotPassword, etc.
 │   │   │   ├── Dashboard.tsx                    # KPI dashboard page
 │   │   │   ├── POS/                             # POS terminal, order history, order detail
@@ -324,6 +329,19 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 ### Entity-Relationship Diagram
 
 ```
+┌──────────────┐
+│   branches   │
+├──────────────┤
+│ id           │
+│ name         │
+│ address      │ (nullable)
+│ phone        │ (nullable)
+│ is_active    │
+│ timestamps   │
+└──────┬───────┘
+       │ 1:N
+       │
+       ▼
 ┌──────────┐       ┌─────────────┐       ┌──────────────┐
 │  users   │       │  categories │       │  ingredients  │
 ├──────────┤       ├─────────────┤       ├──────────────┤
@@ -332,109 +350,126 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 │ email    │       │ description │       │ unit         │
 │ password │       │ sort_order  │       │ cost_per_unit│
 │ role     │       │ is_active   │       │ timestamps   │
-│ timestamps│      │ timestamps  │       └──────┬───────┘
-└────┬─────┘       └──────┬──────┘              │
-     │                    │                     │ 1:1
-     │ 1:N                │ 1:N                 ▼
-     │                    │              ┌──────────────┐
-     │                    │              │  inventory   │
-     │                    │              ├──────────────┤
-     │                    │              │ id           │
-     │                    │              │ ingredient_id│ (unique)
-     │                    │              │ quantity_on_hand│
-     │                    │              │ restock_threshold│
-     │                    │              │ timestamps   │
-     │                    │              └──────────────┘
-     │                    │
-     │                    ▼                     │
-     │             ┌─────────────┐              │
-     │             │ menu_items  │              │
-     │             ├─────────────┤              │
-     │             │ id          │              │
-     │             │ category_id │ (FK)         │
-     │             │ name        │              │
-     │             │ description │              │
-     │             │ price       │              │
-     │             │ image       │              │
-     │             │ is_active   │              │
-     │             │ timestamps  │              │
-     │             └──────┬──────┘              │
-     │                    │                     │
-     │                    │ 1:N                 │ 1:N
-     │                    ▼                     │
-     │             ┌──────────────┐             │
-     │             │   recipes    │◄────────────┘
-     │             ├──────────────┤
-     │             │ id           │
-     │             │ menu_item_id │ (FK)
-     │             │ ingredient_id│ (FK)
-     │             │ quantity     │
-     │             │ timestamps   │
-      │             └──────────────┘
-      │             unique(menu_item_id, ingredient_id)
-      │
-      ▼
- ┌──────────┐
- │  orders  │
- ├──────────┤
- │ id       │
- │ order_number│
- │ user_id  │ (FK)
- │ shift_id │ (nullable FK)
- │ subtotal │
- │ tax      │
- │ total    │
- │ payment_ │
- │  method  │
- │ status   │
- │ timestamps│
- └────┬─────┘
-      │ 1:N
-      │
-      ▼
- ┌──────────┐
- │  shifts  │
- ├──────────┤
- │ id       │
- │ user_id  │ (FK)
- │ opened_at│
- │ closed_at│ (nullable)
- │ opening_cash│
- │ closing_cash│ (nullable)
- │ notes    │ (nullable)
- │ status   │ (enum: open|closed)
- └──────────┘
-      │ 1:N
-      │
-      ▼
- ┌──────────────┐
- │ order_items  │
- ├──────────────┤
- │ id           │
- │ order_id     │ (FK)
- │ menu_item_id │ (FK)
- │ quantity     │
- │ unit_price   │
- │ subtotal     │
- │ cost         │ (COGS snapshot)
- │ timestamps   │
- └──────────────┘
- ```
+│ branch_id│ (FK)      │ timestamps  │       └──────┬───────┘
+│ timestamps│      └──────┬──────┘              │
+└────┬─────┘             │ 1:N                │ 1:1
+     │ 1:N               │                   ▼
+     │                   │            ┌──────────────┐
+     │                   │            │  inventory   │
+     │                   │            ├──────────────┤
+     │                   │            │ id           │
+     │                   │            │ ingredient_id│ (unique)
+     │                   │            │ quantity_on_hand│
+     │                   │            │ restock_threshold│
+     │                   │            │ timestamps   │
+     │                   │            └──────────────┘
+     │                   │
+     │                   ▼                      │
+     │            ┌─────────────┐              │
+     │            │ menu_items  │              │
+     │            ├─────────────┤              │
+     │            │ id          │              │
+     │            │ category_id │ (FK)         │
+     │            │ name        │              │
+     │            │ description │              │
+     │            │ price       │              │
+     │            │ image       │              │
+     │            │ is_active   │              │
+     │            │ timestamps  │              │
+     │            └──────┬──────┘              │
+     │                   │                     │
+     │                   │ 1:N                 │ 1:N
+     │                   ▼                     │
+     │            ┌──────────────┐             │
+     │            │   recipes    │◄────────────┘
+     │            ├──────────────┤
+     │            │ id           │
+     │            │ menu_item_id │ (FK)
+     │            │ ingredient_id│ (FK)
+     │            │ quantity     │
+     │            │ timestamps   │
+     │            └──────────────┘
+     │            unique(menu_item_id, ingredient_id)
+     │
+     ▼
+  ┌──────────┐
+  │  orders  │
+  ├──────────┤
+  │ id       │
+  │ order_number│
+  │ user_id  │ (FK)
+  │ shift_id │ (nullable FK)
+  │ branch_id│ (FK)
+  │ subtotal │
+  │ tax      │
+  │ total    │
+  │ payment_ │
+  │  method  │
+  │ status   │
+  │ timestamps│
+  └────┬─────┘
+       │ 1:N
+       │
+       ▼
+  ┌──────────┐
+  │  shifts  │
+  ├──────────┤
+  │ id       │
+  │ user_id  │ (FK)
+  │ branch_id│ (FK)
+  │ opened_at│
+  │ closed_at│ (nullable)
+  │ opening_cash│
+  │ closing_cash│ (nullable)
+  │ notes    │ (nullable)
+  │ status   │ (enum: open|closed)
+  └──────────┘
+       │ 1:N
+       │
+       ▼
+  ┌──────────────┐
+  │ order_items  │
+  ├──────────────┤
+  │ id           │
+  │ order_id     │ (FK)
+  │ menu_item_id │ (FK)
+  │ quantity     │
+  │ unit_price   │
+  │ subtotal     │
+  │ cost         │ (COGS snapshot)
+  │ timestamps   │
+  └──────────────┘
+
+  ┌──────────────┐
+  │ activity_logs│
+  ├──────────────┤
+  │ id           │
+  │ user_id      │ (FK)
+  │ branch_id    │ (nullable)
+  │ action       │
+  │ model_type   │
+  │ model_id     │
+  │ payload      │
+  │ ip_address   │
+  │ created_at   │
+  └──────────────┘
+  ```
 
  ### Entity Definitions
 
 | Entity          | Key Attributes                                                                                                                                       | Notes                                                                                          |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| **User**        | id, name, email, password, role (`admin`\|`cashier`)                                                                                                 | Authenticatable; factory-supported                                                             |
+| **User**        | id, name, email, password, role (`admin`\|`cashier`), **branch_id** (nullable FK→branches)                                                          | Authenticatable; factory-supported. `branch_id = null` → global admin, set → branch-scoped   |
 | **Category**    | id, name, description, sort_order, is_active                                                                                                         | Soft-sortable; toggleable                                                                      |
 | **MenuItem**    | id, category_id, name, description, price, image, is_active                                                                                          | Computed: `cost`, `food_cost_percentage`                                                       |
 | **Ingredient**  | id, name, unit, cost_per_unit                                                                                                                        | Unit examples: `kg`, `liter`, `pcs`                                                            |
 | **Recipe**      | id, menu_item_id, ingredient_id, quantity                                                                                                            | BOM junction table; unique constraint on (menu_item_id, ingredient_id)                         |
 | **Inventory**   | id, ingredient_id, quantity_on_hand, restock_threshold                                                                                               | 1:1 with Ingredient; unique constraint on ingredient_id                                        |
-| **Order**       | id, order_number, user_id, shift_id (nullable FK→shifts), subtotal, **discount**, tax, total, payment_method, status, **cancelled_by** (nullable FK→users), **cancelled_at** (nullable timestamp) | Auto-generated order_number: `ORD-YYYYMMDD-NNNN`. `shift_id` links order to cashier's active shift. `cancelled_by` / `cancelled_at` set on void. Discount is optional (default 0). |
+| **Order**       | id, order_number, user_id, shift_id (nullable FK→shifts), **branch_id** (nullable FK→branches), subtotal, **discount**, tax, total, payment_method, status, **cancelled_by** (nullable FK→users), **cancelled_at** (nullable timestamp) | Auto-generated order_number: `ORD-YYYYMMDD-NNNN`. `shift_id` links order to cashier's active shift. `branch_id` links order to a branch. `cancelled_by` / `cancelled_at` set on void. Discount is optional (default 0). |
 | **OrderItem**   | id, order_id, menu_item_id, quantity, unit_price, subtotal, cost                                                                                     | Price & COGS snapshots at time of order                                                        |
-| **Shift**       | id, user_id (FK→users), opened_at, closed_at (nullable), opening_cash, closing_cash (nullable), notes (nullable), status (enum: open|closed)           | Cashier work session for cash drawer accountability. One active shift per cashier at a time. Includes `expectedClosingCash()` method for reconciliation.  |
-| **ActivityLog** | id, user_id, action, model_type, model_id, payload, ip_address, created_at                                                                           | Immutable record of system changes. Models override `save()` and `delete()` to prevent modification. |
+| **Shift**       | id, user_id (FK→users), opened_at, closed_at (nullable), opening_cash, closing_cash (nullable), notes (nullable), status (enum: open|closed), **branch_id** (nullable FK→branches) | Cashier work session for cash drawer accountability. One active shift per cashier at a time. Includes `expectedClosingCash()` method for reconciliation. `branch_id` links shift to a branch. |
+| **ActivityLog** | id, user_id, action, model_type, model_id, payload, ip_address, created_at, **branch_id** (nullable, no FK)                                            | Immutable record of system changes. Models override `save()` and `delete()` to prevent modification. `branch_id` records which branch the action occurred in. |
+| **Branch**      | id, name, address (nullable), phone (nullable), is_active (boolean default true), timestamps                                                        | Represents a restaurant location. Admin CRUD (create, edit, activate/deactivate, no delete).   |
 
 ### Decimal Precision
 
@@ -451,7 +486,7 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 
 | Term                  | Definition                                                                                           |
 | --------------------- | ---------------------------------------------------------------------------------------------------- |
-| **POS**               | Point of Sale — the cashier-facing ordering interface                                                |
+| **POS**               | Point of Sale — cashier-facing ordering interface                                                |
 | **Menu Item**         | A sellable food/drink product with a price                                                           |
 | **Category**          | A grouping for menu items (e.g., "Beverages", "Main Course")                                         |
 | **Ingredient**        | A raw material used in recipes (e.g., "Flour", "Cooking Oil")                                        |
@@ -466,6 +501,7 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 | **Shift**             | A cashier work session tracking opening/closing cash for cash drawer accountability                  |
 | **Opening Cash**      | Cash amount at the start of a shift                                                                   |
 | **Closing Cash**      | Cash amount at the end of a shift, entered during shift close                                         |
+| **Branch**            | A restaurant location or outlet that groups users, orders, shifts, and activity logs for data isolation. |
 
 ### Status Enumerations
 
@@ -484,8 +520,8 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 
 | Role        | Description                                                                                                                  | Access Pattern                                         |
 | ----------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| **Admin**   | Restaurant owner/manager. Full system access. Configures menu, ingredients, recipes, inventory. Views reports and dashboard. | Primarily uses `/admin/*` routes. Also has POS access. |
-| **Cashier** | Front-line staff. Creates orders, views own order history.                                                                   | Primarily uses `/pos/*` routes. Also sees dashboard.   |
+| **Admin**   | Restaurant owner/manager. Full system access. Configures menu, ingredients, recipes, inventory. Views reports and dashboard. Can be **global admin** (`branch_id = null`) with full visibility across all branches, or **branch-scoped admin** (`branch_id` set) acting as a branch manager with visibility limited to their branch. | Primarily uses `/admin/*` routes. Also has POS access. |
+| **Cashier** | Front-line staff. Creates orders, views own order history. Scoped to their assigned branch only.                                                                   | Primarily uses `/pos/*` routes. Also sees dashboard.   |
 
 ### Permission Matrix
 
@@ -599,7 +635,7 @@ No dedicated documentation directory (e.g., `docs/`, `specs/`) was found in the 
 ### Code Organization
 
 - **Controllers:** Thin controllers with inline validation. No dedicated service classes or form request classes for most resources (except `ProfileUpdateRequest` and `LoginRequest`).
-- **Models:** Business logic in Eloquent accessors and model methods. No repository pattern.
+- **Models:** Business logic in Eloquent accessors and model methods. No repository pattern. Branch-scoped models use `BranchScope` global scope for automatic filtering.
 - **Frontend pages:** Each page is a standalone `.tsx` file in `Pages/{Module}/{Action}.tsx`.
 - **Type safety:** TypeScript interfaces in `resources/js/types/index.d.ts` mirror Eloquent models.
 
@@ -691,6 +727,7 @@ When the following change, flag downstream items for review:
 - **MenuItem model changes** → Update `MenuItemController`, `RecipeController`, `OrderController` (COGS calc), TypeScript `MenuItem` interface
 - **Recipe/Ingredient changes** → Update COGS calculation in `OrderController.store()`, `MenuItem.getCostAttribute()`
 - **Route changes** → Update `AuthenticatedLayout.tsx` navigation, Ziggy route references in frontend
+- **Branch model changes** → Update `BranchController`, TypeScript `Branch` interface, all branch-scoped queries
 
 ---
 
@@ -736,11 +773,10 @@ Based on conversation history and codebase analysis:
 ### Deferred Scope
 
 - Payment gateway integrations (QRIS, card processing)
-- Multi-branch / multi-tenant support
 - Real-time inventory alerts (push notifications)
 - Customer management / loyalty program
 - Receipt printing integration
-- Comprehensive audit trail
+- Comprehensive audit trail (audit logging is implemented; additional features like filters and reports can be added)
 
 ### Technical Debt Register
 

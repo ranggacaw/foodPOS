@@ -7,7 +7,8 @@ TBD - created by archiving change add-refund-void-management. Update Purpose aft
 
 The system SHALL allow an Admin to cancel a completed order, reverting
 its status to `cancelled` and restoring ingredient inventory quantities
-as defined by the order's recipe BOM at time of cancellation.
+as defined by the order's recipe BOM at time of cancellation. The
+operation SHALL only affect inventory belonging to the order's branch.
 
 #### Scenario: Admin cancels a completed order
 
@@ -40,7 +41,8 @@ as defined by the order's recipe BOM at time of cancellation.
 ### Requirement: Cancelled Order Exclusion from Financials
 
 The system SHALL exclude cancelled orders from all revenue, COGS, and
-profit calculations across the Dashboard and Reports.
+profit calculations across the Dashboard and Reports. All calculations
+SHALL additionally be scoped to the active branch context.
 
 #### Scenario: Dashboard excludes cancelled orders
 

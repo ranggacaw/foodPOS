@@ -29,15 +29,37 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        return [
+        $user = $request->user();
+        $branches = null;
+        $activeBranchId = null;
+
+        if ($user && $user->role === 'admin' && $user->branch_id === null) {
+            try {
+                $branches = \App\Models\Branch::where('is_active', true)->get();
+                $activeBranchId = \App\Services\BranchContext::getActiveBranchId();
+            } catch (\Exception $e) {
+                $branches = [];
+            }
+        }
+
+        $data = [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
             ],
         ];
+
+        if ($branches !== null) {
+            $data['branches'] = $branches;
+        }
+        if ($activeBranchId !== null) {
+            $data['active_branch_id'] = $activeBranchId;
+        }
+
+        return $data;
     }
 }

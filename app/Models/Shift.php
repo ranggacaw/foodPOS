@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Shift extends Model
 {
     protected $fillable = [
+        'branch_id',
         'user_id',
         'opening_cash',
         'closing_cash',
@@ -17,6 +18,11 @@ class Shift extends Model
         'opened_at',
         'closed_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new \App\Models\Scopes\BranchScope);
+    }
 
     protected function casts(): array
     {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\POS;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shift;
+use App\Services\BranchContext;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -42,7 +43,10 @@ class ShiftController extends Controller
             return back()->withErrors(['opening_cash' => 'You already have an open shift.']);
         }
 
+        $branch_id = $request->user()->branch_id ?? BranchContext::getActiveBranchId();
+
         $request->user()->shifts()->create([
+            'branch_id' => $branch_id,
             'opening_cash' => $request->opening_cash,
             'status' => 'open',
             'opened_at' => now(),

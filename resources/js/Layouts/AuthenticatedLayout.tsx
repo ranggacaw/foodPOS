@@ -1,4 +1,5 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
+import BranchSwitcher from '@/Components/BranchSwitcher';
 import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import PwaInstallBanner from '@/Components/PwaInstallBanner';
@@ -43,6 +44,12 @@ export default function Authenticated({
 
                                     {isAdmin && (
                                         <>
+                                            <NavLink
+                                                href={route('admin.branches.index')}
+                                                active={route().current('admin.branches.*')}
+                                            >
+                                                Branches
+                                            </NavLink>
                                             <NavLink
                                                 href={route('admin.categories.index')}
                                                 active={route().current('admin.categories.*')}
@@ -108,7 +115,8 @@ export default function Authenticated({
                                 </div>
                             </div>
 
-                            <div className="hidden sm:ms-6 sm:flex sm:items-center">
+                             <div className="hidden sm:ms-6 sm:flex sm:items-center">
+                                <BranchSwitcher />
                                 <div className="relative ms-3">
                                     <Dropdown>
                                         <Dropdown.Trigger>

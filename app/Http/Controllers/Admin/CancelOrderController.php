@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Services\BranchContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,12 @@ class CancelOrderController extends Controller
     {
         if ($order->status === 'cancelled') {
             abort(422, 'This order has already been cancelled.');
+        }
+
+        $activeBranchId = BranchContext::getActiveBranchId();
+
+        if ($activeBranchId !== null && $order->branch_id !== $activeBranchId) {
+            abort(403, 'You can only cancel orders from your assigned branch.');
         }
 
         DB::transaction(function () use ($request, $order) {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Services\BranchContext;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -14,6 +15,17 @@ class AuditLogController extends Controller
     public function index(Request $request): Response
     {
         $query = ActivityLog::with('user:id,name')->latest('created_at');
+
+        $user = $request->user();
+
+        if ($user->branch_id) {
+            $query->where('branch_id', $user->branch_id);
+        } else {
+            $activeBranchId = BranchContext::getActiveBranchId();
+            if ($activeBranchId) {
+                $query->where('branch_id', $activeBranchId);
+            }
+        }
 
         if ($request->filled('action')) {
             $query->where('action', $request->query('action'));

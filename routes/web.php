@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\RecipeController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\CancelOrderController;
+use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\POS\OrderController;
 use App\Http\Controllers\POS\ShiftController;
@@ -43,6 +44,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
+        Route::resource('branches', BranchController::class)->except(['show', 'destroy']);
+        Route::post('branches/switch', [BranchController::class, 'switch'])->name('branches.switch');
         Route::resource('categories', CategoryController::class)->except(['show']);
         Route::resource('menu-items', MenuItemController::class)->except(['show']);
         Route::resource('ingredients', IngredientController::class)->except(['show']);

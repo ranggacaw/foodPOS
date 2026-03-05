@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\MenuItem;
 use App\Models\Order;
+use App\Services\BranchContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -87,9 +88,11 @@ class OrderController extends Controller
             $total = round($subtotalAfterDiscount + $tax, 2);
 
             $shift_id = $request->user()->shifts()->where('status', 'open')->value('id');
+            $branch_id = $request->user()->branch_id ?? BranchContext::getActiveBranchId();
 
             $order = Order::create([
                 'order_number' => Order::generateOrderNumber(),
+                'branch_id' => $branch_id,
                 'user_id' => $request->user()->id,
                 'shift_id' => $shift_id,
                 'subtotal' => $subtotal,

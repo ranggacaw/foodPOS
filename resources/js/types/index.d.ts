@@ -4,6 +4,7 @@ export interface User {
     email: string;
     email_verified_at?: string;
     role: "admin" | "cashier";
+    branch_id: number | null;
 }
 
 export interface Category {
@@ -68,6 +69,7 @@ export interface Inventory {
 export interface Order {
     id: number;
     order_number: string;
+    branch_id: number | null;
     user_id: number;
     shift_id: number | null;
     subtotal: string;
@@ -88,6 +90,7 @@ export interface Order {
 
 export interface Shift {
     id: number;
+    branch_id: number | null;
     user_id: number;
     opening_cash: string;
     closing_cash: string | null;
@@ -134,6 +137,16 @@ export interface PaginatedData<T> {
     total: number;
 }
 
+export interface Branch {
+    id: number;
+    name: string;
+    address: string | null;
+    phone: string | null;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface ActivityLog {
     id: number;
     user_id: number | null;
@@ -156,6 +169,8 @@ export type PageProps<T extends object = Record<string, unknown>> = T & {
     auth: {
         user: User;
     };
+    branches?: Branch[];
+    active_branch_id?: number | null;
     flash?: {
         success?: string;
         error?: string;

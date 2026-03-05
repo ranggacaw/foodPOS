@@ -10,6 +10,7 @@ class Order extends Model
 {
     protected $fillable = [
         'order_number',
+        'branch_id',
         'user_id',
         'shift_id',
         'subtotal',
@@ -21,6 +22,11 @@ class Order extends Model
         'cancelled_by',
         'cancelled_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(new \App\Models\Scopes\BranchScope);
+    }
 
     protected function casts(): array
     {

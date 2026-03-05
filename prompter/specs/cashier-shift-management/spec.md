@@ -7,12 +7,14 @@ The cashier-shift-management capability enables tracking of cashier work session
 
 The system SHALL allow a Cashier or Admin to open a shift before taking
 orders, recording the opening cash amount and locking the session to
-that shift for reporting purposes.
+that shift for reporting purposes. Every shift SHALL be stamped with the
+creating user's `branch_id` at the time of opening.
 
 #### Scenario: Cashier opens a shift successfully
 
 - **WHEN** a Cashier submits an open-shift request with a valid `opening_cash` amount (≥ 0)
-- **THEN** a new `Shift` record is created with `status = open`, `opened_at = now()`, `user_id = auth user`
+- **THEN** a new `Shift` record is created with `status = open`, `opened_at = now()`,
+  `user_id = auth user`, and `branch_id = auth user's branch_id`
 - **AND** the Cashier is redirected to the POS terminal
 
 #### Scenario: Cashier attempts to open a second shift while one is active
@@ -30,7 +32,8 @@ recording the closing cash and optional notes.
 #### Scenario: Cashier closes their open shift
 
 - **WHEN** a Cashier submits a close-shift request with a valid `closing_cash` amount (≥ 0)
-- **THEN** the shift record is updated: `status = closed`, `closed_at = now()`, `closing_cash`, `notes`
+- **THEN** the shift record is updated: `status = closed`, `closed_at = now()`,
+  `closing_cash`, `notes`
 - **AND** the Cashier is redirected to the shift summary page
 
 #### Scenario: Cashier attempts to close a shift they do not own
@@ -52,7 +55,8 @@ closing cash (opening cash + cash payments).
 #### Scenario: Cashier views shift summary
 
 - **WHEN** a Cashier views the detail page for one of their shifts
-- **THEN** the system displays: shift open/close times, opening cash, closing cash, notes, order count, total revenue, cash/card/QRIS breakdown, and expected closing cash
+- **THEN** the system displays: shift open/close times, opening cash, closing cash, notes,
+  order count, total revenue, cash/card/QRIS breakdown, and expected closing cash
 
 #### Scenario: Admin views any shift summary
 

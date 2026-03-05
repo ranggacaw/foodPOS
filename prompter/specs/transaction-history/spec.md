@@ -5,7 +5,11 @@ TBD - created by archiving change add-transaction-history. Update Purpose after 
 ## Requirements
 ### Requirement: Day-Grouped Transaction Summary List
 
-The system SHALL provide a paginated list of past transaction days, sorted newest-first, where each day entry displays the date label, total number of completed orders, and total revenue (sum of `orders.total` for non-cancelled orders) for that date. Only dates with at least one completed order SHALL appear.
+The system SHALL provide a paginated list of past transaction days, sorted newest-first,
+where each day entry displays the date label, total number of completed orders, and total
+revenue (sum of `orders.total` for non-cancelled orders) for that date. Only dates with at
+least one completed order SHALL appear. All queries SHALL be filtered to the active branch
+context from the session.
 
 #### Scenario: Viewing the transaction history page with data
 
@@ -13,10 +17,12 @@ The system SHALL provide a paginated list of past transaction days, sorted newes
 - **THEN** the system displays a paginated list of dates (most recent first)
 - **AND** each date entry shows: formatted date label, count of completed orders, and total revenue in IDR
 - **AND** only dates with at least one completed or cancelled order are listed
+- **AND** results are filtered to the user's active branch context
 
 #### Scenario: Viewing the transaction history page with no historical orders
 
 - **WHEN** a user navigates to `GET /pos/history` and there are no orders in the system
+  (or no orders for the active branch)
 - **THEN** the system displays an empty state message indicating no transaction history is available
 
 #### Scenario: Pagination of day summaries
@@ -26,7 +32,10 @@ The system SHALL provide a paginated list of past transaction days, sorted newes
 
 ### Requirement: Daily Order Drill-Down
 
-The system SHALL provide a view showing all orders for a specific date, displaying each order's order number, time, items count, total (IDR), payment method, and status. Each order row SHALL be clickable, navigating to the existing Order Detail page via the `pos.orders.show` route.
+The system SHALL provide a view showing all orders for a specific date, displaying each
+order's order number, time, items count, total (IDR), payment method, and status. Each
+order row SHALL be clickable, navigating to the existing Order Detail page via the
+`pos.orders.show` route. Results SHALL be filtered to the active branch context.
 
 #### Scenario: Viewing all orders for a specific date
 
@@ -34,11 +43,14 @@ The system SHALL provide a view showing all orders for a specific date, displayi
 - **THEN** the system displays a paginated table of all orders created on that date (in Asia/Jakarta timezone)
 - **AND** each row shows: order number, time, items count, total in IDR, payment method, and status badge
 - **AND** each row links to `pos.orders.show` for the corresponding order
+- **AND** results are filtered to the active branch context
 
 #### Scenario: Viewing a date with no orders
 
 - **WHEN** a user navigates to `GET /pos/history/{date}` and no orders exist for that date
-- **THEN** the system displays an empty state message for that date with a link back to the transaction history list
+  (or no orders for the active branch on that date)
+- **THEN** the system displays an empty state message for that date with a link back to the
+  transaction history list
 
 #### Scenario: Invalid date format in URL
 
@@ -52,7 +64,8 @@ The system SHALL provide a view showing all orders for a specific date, displayi
 
 ### Requirement: Transaction History Navigation Integration
 
-The system SHALL include a "Transaction History" navigation link in the POS section of the application's authenticated layout, accessible to both admin and cashier roles.
+The system SHALL include a "Transaction History" navigation link in the POS section of
+the application's authenticated layout, accessible to both admin and cashier roles.
 
 #### Scenario: Navigation link is visible and functional
 
@@ -67,7 +80,9 @@ The system SHALL include a "Transaction History" navigation link in the POS sect
 
 ### Requirement: Backend Transaction History Controller
 
-The system SHALL serve transaction history data via a dedicated `TransactionHistoryController` with `index` and `show` methods, using Inertia.js responses with the existing `Order` and `OrderItem` models.
+The system SHALL serve transaction history data via a dedicated `TransactionHistoryController`
+with `index` and `show` methods, using Inertia.js responses with the existing `Order` and
+`OrderItem` models. All queries SHALL apply the active branch scope.
 
 #### Scenario: Index method returns day-grouped summaries
 
@@ -75,6 +90,7 @@ The system SHALL serve transaction history data via a dedicated `TransactionHist
 - **THEN** it returns an Inertia response rendering `POS/TransactionHistory` with paginated day summaries
 - **AND** each summary contains: `date` (string, YYYY-MM-DD), `order_count` (integer), `total_revenue` (float)
 - **AND** date grouping uses Asia/Jakarta timezone (UTC+7)
+- **AND** results are scoped to the active branch
 
 #### Scenario: Show method returns orders for a specific date
 
@@ -82,10 +98,13 @@ The system SHALL serve transaction history data via a dedicated `TransactionHist
 - **THEN** it returns an Inertia response rendering `POS/TransactionHistoryDay` with paginated orders for that date
 - **AND** each order includes eager-loaded `items.menuItem` relationship
 - **AND** the response includes a `date` prop for display on the drill-down page
+- **AND** results are scoped to the active branch
 
 ### Requirement: Timezone-Correct Date Grouping
 
-The system SHALL group orders by their local date in the Asia/Jakarta timezone (UTC+7) rather than by UTC date, ensuring that orders placed near midnight are attributed to the correct business day.
+The system SHALL group orders by their local date in the Asia/Jakarta timezone (UTC+7)
+rather than by UTC date, ensuring that orders placed near midnight are attributed to the
+correct business day.
 
 #### Scenario: Order near midnight is correctly grouped
 
@@ -95,7 +114,8 @@ The system SHALL group orders by their local date in the Asia/Jakarta timezone (
 
 ### Requirement: Transaction History Type Definitions
 
-The system SHALL extend the TypeScript type definitions in `@/types` to include a `DaySummary` interface representing the day-grouped data shape returned by the backend.
+The system SHALL extend the TypeScript type definitions in `@/types` to include a
+`DaySummary` interface representing the day-grouped data shape returned by the backend.
 
 #### Scenario: DaySummary type is available for frontend components
 
