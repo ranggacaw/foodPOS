@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\IngredientController;
 use App\Http\Controllers\Admin\InventoryController;
+use App\Http\Controllers\Admin\InventoryTransferController;
 use App\Http\Controllers\Admin\MenuItemController;
 use App\Http\Controllers\Admin\RecipeController;
 use App\Http\Controllers\Admin\ReportController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\POS\OrderController;
 use App\Http\Controllers\POS\ShiftController;
 use App\Http\Controllers\POS\TransactionHistoryController;
+use App\Http\Controllers\POS\PushSubscriptionController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -75,6 +77,11 @@ Route::middleware(['auth', 'verified', 'role:admin'])
         // Order cancellation
         Route::patch('orders/{order}/cancel', CancelOrderController::class)
             ->name('orders.cancel');
+
+        // Inventory Transfers
+        Route::resource('inventory-transfers', InventoryTransferController::class)->only(['index', 'create', 'store']);
+        Route::patch('inventory-transfers/{transfer}/approve', [InventoryTransferController::class, 'approve'])->name('inventory-transfers.approve');
+        Route::patch('inventory-transfers/{transfer}/reject', [InventoryTransferController::class, 'reject'])->name('inventory-transfers.reject');
     });
 
 // POS routes (accessible by both admin and cashier)
@@ -98,6 +105,10 @@ Route::middleware(['auth', 'verified'])
         Route::get('/shifts/{shift}/close', [ShiftController::class, 'close'])->name('shifts.close');
         Route::patch('/shifts/{shift}', [ShiftController::class, 'update'])->name('shifts.update');
         Route::get('/shifts/{shift}', [ShiftController::class, 'show'])->name('shifts.show');
+
+        // Push Subscriptions
+        Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('push-subscriptions.store');
+        Route::delete('/push-subscriptions/{endpoint}', [PushSubscriptionController::class, 'destroy'])->name('push-subscriptions.destroy');
     });
 
 require __DIR__ . '/auth.php';

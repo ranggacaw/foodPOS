@@ -159,6 +159,29 @@ export interface ActivityLog {
     user?: User;
 }
 
+export interface InventoryTransfer {
+    id: number;
+    from_branch_id: number;
+    to_branch_id: number;
+    ingredient_id: number;
+    quantity: string;
+    status: "pending" | "approved" | "rejected";
+    requested_by: number;
+    approved_by: number | null;
+    rejected_by: number | null;
+    approved_at: string | null;
+    rejected_at: string | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+    from_branch?: Branch;
+    to_branch?: Branch;
+    ingredient?: Ingredient;
+    requested_by_user?: User;
+    approved_by_user?: User;
+    rejected_by_user?: User;
+}
+
 export interface DaySummary {
     date: string;
     order_count: number;

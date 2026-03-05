@@ -3,6 +3,7 @@ import BranchSwitcher from '@/Components/BranchSwitcher';
 import Dropdown from '@/Components/Dropdown';
 import NavLink from '@/Components/NavLink';
 import PwaInstallBanner from '@/Components/PwaInstallBanner';
+import PushNotificationPrompt from '@/Components/PushNotificationPrompt';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
 import { PropsWithChildren, ReactNode, useState } from 'react';
@@ -355,6 +356,7 @@ export default function Authenticated({
 
             <main>{children}</main>
             <PwaInstallBanner />
+            <PushNotificationPrompt />
         </div>
     );
 }

@@ -2,6 +2,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, router } from '@inertiajs/react';
 import { useState, useMemo, useEffect } from 'react';
 import { Category, MenuItem } from '@/types';
+import { enqueue } from '@/hooks/useOfflineQueue';
 
 interface CartItem {
     menu_item_id: number;
@@ -105,7 +106,7 @@ export default function Index({ categories }: { categories: Category[] }) {
 
         setProcessing(true);
 
-        router.post(route('pos.orders.store'), {
+        const orderPayload = {
             items: cart.map((c) => ({
                 menu_item_id: c.menu_item_id,
                 quantity: c.quantity,
@@ -113,16 +114,32 @@ export default function Index({ categories }: { categories: Category[] }) {
             payment_method: paymentMethod,
             tax_rate: TAX_RATE,
             discount: discount,
-        }, {
-            onSuccess: () => {
+        };
+
+        if (!navigator.onLine) {
+            enqueue(orderPayload).then(() => {
                 setCart([]);
                 setPaymentMethod('cash');
                 setDiscount(0);
-            },
-            onFinish: () => {
                 setProcessing(false);
-            },
-        });
+                alert('Order saved offline. Will sync when connected.');
+            }).catch((err) => {
+                console.error('Failed to enqueue order:', err);
+                setProcessing(false);
+                alert('Failed to save order offline. Please try again.');
+            });
+        } else {
+            router.post(route('pos.orders.store'), orderPayload, {
+                onSuccess: () => {
+                    setCart([]);
+                    setPaymentMethod('cash');
+                    setDiscount(0);
+                },
+                onFinish: () => {
+                    setProcessing(false);
+                },
+            });
+        }
     };
 
     return (

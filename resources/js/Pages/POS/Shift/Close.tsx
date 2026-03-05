@@ -1,6 +1,8 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, useForm } from '@inertiajs/react';
 import { Shift } from '@/types';
+import { getPendingCount } from '@/hooks/useOfflineQueue';
+import { useEffect, useState } from 'react';
 
 interface Props {
     shift: Shift;
@@ -12,6 +14,24 @@ export default function CloseShift({ shift, expected_cash }: Props) {
         closing_cash: expected_cash.toString(),
         notes: '',
     });
+
+    const [pendingCount, setPendingCount] = useState<number>(0);
+    const [isLoadingPending, setIsLoadingPending] = useState(true);
+
+    useEffect(() => {
+        const checkPendingOrders = async () => {
+            try {
+                const count = await getPendingCount();
+                setPendingCount(count);
+            } catch (error) {
+                console.error('Failed to check pending orders:', error);
+            } finally {
+                setIsLoadingPending(false);
+            }
+        };
+
+        checkPendingOrders();
+    }, []);
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,6 +55,14 @@ export default function CloseShift({ shift, expected_cash }: Props) {
                         </div>
 
                         <div className="mb-6 rounded-md bg-gray-50 p-4">
+                            {pendingCount > 0 && (
+                                <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+                                    <p className="font-semibold">⚠️ Unsynced Orders Detected</p>
+                                    <p className="mt-1">
+                                        You have {pendingCount} unsynced order{pendingCount !== 1 ? 's' : ''}. Wait for sync before closing your shift.
+                                    </p>
+                                </div>
+                            )}
                             <dl className="divide-y divide-gray-200">
                                 <div className="flex justify-between py-2 text-sm">
                                     <dt className="text-gray-500">Opening Cash</dt>
@@ -105,10 +133,10 @@ export default function CloseShift({ shift, expected_cash }: Props) {
 
                             <button
                                 type="submit"
-                                disabled={processing}
-                                className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-indigo-400"
+                                disabled={processing || pendingCount > 0 || isLoadingPending}
+                                className="flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-indigo-400 disabled:cursor-not-allowed"
                             >
-                                {processing ? 'Closing Shift...' : 'Confirm Closing Cash'}
+                                {processing ? 'Closing Shift...' : isLoadingPending ? 'Checking...' : 'Confirm Closing Cash'}
                             </button>
                         </form>
                     </div>

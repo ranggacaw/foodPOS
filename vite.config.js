@@ -12,6 +12,7 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
+            strategies: 'injectManifest',
             // Don't inject the SW registration script — we do it manually in app.tsx
             injectRegister: null,
             // Serve the SW from the web root so it can control scope '/'
@@ -45,15 +46,15 @@ export default defineConfig({
                     },
                 ],
             },
+            injectManifest: {
+                globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+                globIgnores: ['offline.html'],
+            },
             workbox: {
                 // Serve offline.html for any navigation request that fails
                 navigateFallback: '/offline.html',
                 // Only apply navigateFallback to HTML navigation requests
                 navigateFallbackDenylist: [/^\/api\//],
-                // Precache Vite-hashed JS, CSS, and HTML assets
-                globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-                // Don't precache the offline page itself via glob (it's set as navigateFallback)
-                globIgnores: ['offline.html'],
                 // Ensure the SW controls the full origin
                 swDest: 'public/sw.js',
             },

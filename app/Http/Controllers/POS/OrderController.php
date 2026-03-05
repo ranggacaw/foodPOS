@@ -4,8 +4,12 @@ namespace App\Http\Controllers\POS;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Ingredient;
+use App\Models\Inventory;
 use App\Models\MenuItem;
 use App\Models\Order;
+use App\Models\User;
+use App\Notifications\LowStockAlert;
 use App\Services\BranchContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -107,6 +111,26 @@ class OrderController extends Controller
 
             return $order;
         });
+
+        foreach ($validated['items'] as $item) {
+            $menuItem = MenuItem::with('recipes.ingredient.inventory')->findOrFail($item['menu_item_id']);
+
+            foreach ($menuItem->recipes as $recipe) {
+                $inventory = $recipe->ingredient->inventory;
+
+                if ($inventory && $inventory->quantity_on_hand <= $inventory->restock_threshold) {
+                    $admins = User::where('role', 'admin')->get();
+
+                    foreach ($admins as $admin) {
+                        $admin->notify(new LowStockAlert(
+                            $recipe->ingredient,
+                            (float) $inventory->quantity_on_hand,
+                            (float) $inventory->restock_threshold
+                        ));
+                    }
+                }
+            }
+        }
 
         return to_route('pos.orders.show', $order)
             ->with('success', "Order {$order->order_number} created successfully.");
