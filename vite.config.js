@@ -13,20 +13,19 @@ export default defineConfig({
         VitePWA({
             registerType: 'autoUpdate',
             strategies: 'injectManifest',
-            // Don't inject the SW registration script — we do it manually in app.tsx
             injectRegister: null,
-            // Serve the SW from the web root so it can control scope '/'
+            srcDir: 'resources/js',
+            filename: 'sw.js',
             scope: '/',
             base: '/',
             manifest: {
                 name: 'FoodPOS',
                 short_name: 'FoodPOS',
-                description: 'Food Point-of-Sale system for restaurants',
-                start_url: '/pos',
-                scope: '/',
+                description: 'Food-service Point of Sale system',
+                theme_color: '#1e40af',
+                background_color: '#ffffff',
                 display: 'standalone',
-                background_color: '#f3f4f6',
-                theme_color: '#1d4ed8',
+                start_url: '/',
                 icons: [
                     {
                         src: '/icons/icon-192x192.png',
@@ -49,14 +48,6 @@ export default defineConfig({
             injectManifest: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
                 globIgnores: ['offline.html'],
-            },
-            workbox: {
-                // Serve offline.html for any navigation request that fails
-                navigateFallback: '/offline.html',
-                // Only apply navigateFallback to HTML navigation requests
-                navigateFallbackDenylist: [/^\/api\//],
-                // Ensure the SW controls the full origin
-                swDest: 'public/sw.js',
             },
         }),
     ],

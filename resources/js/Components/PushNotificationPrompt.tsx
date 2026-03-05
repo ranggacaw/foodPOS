@@ -27,13 +27,23 @@ export default function PushNotificationPrompt() {
                 const registration = await navigator.serviceWorker.ready;
                 const subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
-                    applicationServerKey: process.env.VITE_VAPID_PUBLIC_KEY,
+                    applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY,
                 });
+
+                const arrayBufferToBase64 = (buffer: ArrayBuffer | null): string => {
+                    if (!buffer) return '';
+                    const bytes = new Uint8Array(buffer);
+                    let binary = '';
+                    for (let i = 0; i < bytes.byteLength; i++) {
+                        binary += String.fromCharCode(bytes[i]);
+                    }
+                    return btoa(binary);
+                };
 
                 await router.post(route('pos.push-subscriptions.store'), {
                     endpoint: subscription.endpoint,
-                    public_key: Buffer.from(subscription.getKey('p256dh')!).toString('base64'),
-                    auth_token: Buffer.from(subscription.getKey('auth')!).toString('base64'),
+                    public_key: arrayBufferToBase64(subscription.getKey('p256dh')!),
+                    auth_token: arrayBufferToBase64(subscription.getKey('auth')!),
                 });
 
                 setShowPrompt(false);

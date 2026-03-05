@@ -108,17 +108,17 @@
       - `clients.openWindow(event.notification.data.url)` or focus existing window
 
 ## 9. Verification
-- [ ] 9.1 Run `php artisan test` — all existing tests must pass
+- [x] 9.1 Run `php artisan test` — all existing tests must pass
 - [ ] 9.2 Manually test offline order creation: disable network, create order, re-enable,
         verify order appears in history
 - [ ] 9.3 Manually test inventory transfer: create request, approve, verify stock changes
 - [ ] 9.4 Manually test push notification: subscribe, trigger a low-stock order, verify
         browser notification appears
 - [ ] 9.5 Test shift close blocked when queue has pending orders
-- [ ] 9.6 Run `npm run build` — no TypeScript errors
+- [x] 9.6 Run `npm run build` — no TypeScript errors
 
 ## Post-Implementation
-- [ ] Update `AGENTS.md` in the project root to reflect:
+- [x] Update `AGENTS.md` in the project root to reflect:
       - `InventoryTransfer` model and `inventory_transfers` table
       - `push_subscriptions` table
       - Offline sync queue architecture (IndexedDB, Background Sync)
