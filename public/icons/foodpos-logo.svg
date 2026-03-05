@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#1d4ed8"/>
+  <!-- Fork on the left -->
+  <rect x="175" y="120" width="18" height="90" rx="6" fill="white"/>
+  <rect x="155" y="120" width="8" height="50" rx="4" fill="white"/>
+  <rect x="195" y="120" width="8" height="50" rx="4" fill="white"/>
+  <rect x="175" y="210" width="18" height="170" rx="9" fill="white"/>
+  <!-- Spoon on the right -->
+  <ellipse cx="319" cy="160" rx="26" ry="40" fill="white"/>
+  <rect x="310" y="198" width="18" height="182" rx="9" fill="white"/>
+  <!-- "POS" text hint - small plate in center -->
+  <ellipse cx="256" cy="295" rx="55" ry="12" fill="rgba(255,255,255,0.25)"/>
+  <ellipse cx="256" cy="289" rx="44" ry="36" fill="white" opacity="0.15"/>
+</svg>
